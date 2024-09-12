@@ -1,0 +1,890 @@
+su\documentclass{article}
+
+
+% if you need to pass options to natbib, use, e.g.:
+%     \PassOptionsToPackage{numbers, compress}{natbib}
+% before loading neurips_2024
+
+
+% ready for submission
+\usepackage{neurips_2024}
+
+
+% to compile a preprint version, e.g., for submission to arXiv, add add the
+% [preprint] option:
+%     \usepackage[preprint]{neurips_2024}
+
+
+% to compile a camera-ready version, add the [final] option, e.g.:
+%     \usepackage[final]{neurips_2024}
+
+
+% to avoid loading the natbib package, add option nonatbib:
+%    \usepackage[nonatbib]{neurips_2024}
+
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{xcolor}         % colors
+\usepackage{graphicx}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\title{A meta unit for co-constructing a computational scaffold model to guide human motor learning}
+
+
+% The \author macro works with any number of authors. There are two commands
+% used to separate the names and addresses of multiple authors: \And and \AND.
+%
+% Using \And between authors leaves it to LaTeX to determine where to break the
+% lines. Using \AND forces a line break at that point. So, if LaTeX puts 3 of 4
+% authors names on the first line, and the last on the second line, try using
+% \AND instead of \And before the third author name.
+
+
+\author{%
+  David S.~Hippocampus\thanks{Use footnote for providing further information
+    about author (webpage, alternative address)---\emph{not} for acknowledging
+    funding agencies.} \\
+  Department of Computer Science\\
+  Cranberry-Lemon University\\
+  Pittsburgh, PA 15213 \\
+  \texttt{hippo@cs.cranberry-lemon.edu} \\
+  % examples of more authors
+  % \And
+  % Coauthor \\
+  % Affiliation \\
+  % Address \\
+  % \texttt{email} \\
+  % \AND
+  % Coauthor \\
+  % Affiliation \\
+  % Address \\
+  % \texttt{email} \\
+  % \And
+  % Coauthor \\
+  % Affiliation \\
+  % Address \\
+  % \texttt{email} \\
+  % \And
+  % Coauthor \\
+  % Affiliation \\
+  % Address \\
+  % \texttt{email} \\
+}
+
+
+\begin{document}
+
+
+\maketitle
+
+
+\begin{abstract}
+ Learning of e.g. a dexterous motor skill,  which is common in medical
+training, sports or playing a musical instrument, is time-costly and
+needs supervision from a teacher,  to avoid injury and to progress. Importantly, learning a
+motor skill requires active practice, and adjusting one's own individual
+embodiment to perform the target movement.  Open research questions are: How to balance self-regulated and exploratory
+practice with teacher-guided practice?  How to adjust the teacher guidance strategy that
+has been optimized by teacher to fit their experience and embodiment, to suite the learner's own
+unique talents?  How can the learner improve \textit{beyond} the
+performance of the teacher?  
+We introduce a  meta unit for co-constructing a computational scaffold for learning, that targets to integrate the teacher, the learner and a computational optimization approach, represented by a Dyna-Q $\epsilon$-greedy  reinforcement learning agent. 
+In this preliminary work,  the meta unit is implemented as a Bernoulli distribution, which is parameterized by average reward gained by the simulated learner. Sampling from this distribution regulates the interventions of the  simulated teacher. 
+On the one hand, the resulting procedure regulates the interventions of the teacher during the learning process dynamically, if the learner is failing to progress.   
+On the other hand, the learner employs a  model of their talents, provided within the Dyna-Q agent,  and schedules their practice with a trade-off between exploration and self-regulated practice. Under the assumption of difference in embodiments between the teacher and the learner,  this approach aims to enable the learner to discover their own optimal learning policy, while being guided by the teacher on-demand, with the ultimate goal to improve  beyond the capacity of the teacher.  
+% was sind die hauptergebnisse, was bewirkt der ansatz. % FIXME: add the last two sentenses to the end of the introduction
+
+\end{abstract}
+
+
+\section{Introduction}
+Learning of e.g. a dexterous motor skill,  which is common in medical
+training, sports or playing a musical instrument, is time-costly and
+requires, on the one hand, supervision from a teacher,  to avoid injury and to progress. In most of the above-mentioned scenarios, in particular in medical training and in sports associated with a high risk of injury, it is obligatory to be guided by a teacher, and not sufficient to try out different learning strategies without being lead by an expert. 
+ On the other hand,  learning a complex 
+motor skill requires a lengthy and active practice, training and adjusting one's own individual
+embodiment\footnote{"The word embodied refers to the dual valence of the
+notion of body: bodiness is a combination of a physical
+structure (the biological body) and an experiential
+structure, which corresponds to the living, moving,
+suffering, and enjoying body. From here it is possible
+to arrive at the dual acceptation of embodied cognition,
+which refers, on the one hand, to the grounding of
+cognitive processes in the brain’s neuroanatomical
+substratum, and on the other, to the derivation of
+cognitive processes from our organism’s sensorimotor
+experiences".~\cite{encyclopedia}} to perform the target movement.   
+Parents often observe, how small children insist on self-regulatory learning, and refuse to be helped/guided. They still try to perform the movement,  such as  eating with a spoon, even though the result is often not robust,  as would be, if guided  by the parents. Guidance of babies by their parents  is one example in which the teacher and the learner strongly differ in embodiment.  It is likely that the teacher and the learner are rarely characterized by a completely overlapping set of talents, although in this work we do not differentiate between observable and non-observable differences yet.  Another prominent example of embodiment differences is in a motor rehabilitation setting. Here in particular, each patient has their own skills that need to be relearned. 
+
+The main  question  that we are
+interested in exploring is: How to balance self-regulated,  exploratory practice, and develop awareness of ones' own talents  with teacher-guided practice? 
+In this work we explore a meta unit which co-constructs a learning scaffold, integrating  a teacher model, an agent trained with Dyna-Q reinforcement learning (RL), and a  simulated learner.  This approach looks to find an optimal combination of self-regulatory talent mining of the learner and on-demand teacher guidance. 
+
+\section{Related work}
+
+Scaffolding for learning~\cite{encyclopedia} is a term that originates from the educational psychology. “Scaffolding is a reciprocal feedback process in which a more expert other (e.g.,
+teacher, or peer with greater expertise) interacts with a less knowledgeable learner, with the goal of
+providing the kind of conceptual support that enables the learner, over time, to be able to work with
+the task, content, or idea independently”~\cite{encyclopedia}. While being a  rigorously researched topic in educational domains~(e.g.~\cite{brunskill23,passen21,amy}), such as mathematics and programming, the domain of computational scaffolding of motor learning is relatively new.  The domain has a huge relevance due to its range that stretches from learning musical instruments to relearning during rehabilitation.
+One of the earlier works~\cite{soeren} describes a setup in which a simulated learner is given exercise units, termed practice modes, that are optimized based on their corresponding utility. 
+  Related  approach maps both the learner state and  target parameters of the training to a suitable exercise unit~\cite{gauss}. The model is trained in a supervised manner  with the ground truth provided by a  teacher and recorded during the training session with the learner.   This approach is teacher-driven and does not contain any exploratory or self-regulated learning that can be performed by the learner by themselves. 
+Other approach uses reinforcement learning to schedule exercises  for the human learner~\cite{nature} based on the achieved reward and the state of their ability.  Here only the agent is used to guide the learner, and the teacher is not explicitly modeled.  Similar to~\cite{soeren}, the authors of~\cite{megha} propose the so-called teachable skills, segments of a motor task that can be selected and  recombined to form individual drills for the learner. There are common aspects to the above approaches. They aim to assess the capabilities of the learner, and to generate an individually tuned sequence of exercise units. 
+The above-mentioned scaffolding principle is inspired by the traditional literature on motor learning with a human teacher (e.g.~\cite{cortot}). Here, it is common for a learner to get small exercise units that are derived by simplification or related to the target task. Here we will explore the challenge of embodiment differences between the learner  and the teacher, and resulting from this, the need to empower the learner to learn in self-regulatory manner and mine their own talents, but also get support from the teacher if needed.    
+This work aims at merging the two approaches to computational training, teacher-driven, and the reinforcement learning-driven. 
+
+
+\section{Methods}
+% , enabling highly adaptive and patient-customized therapeutic intervention. An immersive VR system for the rehabilitation of reaching movement using a bubble popping game is proposed. In the virtual space, the patient is presented with bubbles appearing at different locations and is asked to reach the bubble with the injured limb and pop it. The implementation of a Q-learning algorithm enables the game to adjust the location of the next bubble according to the performance of the patient, represented by his kinematic characteristics
+The method is builds upon two main assumptions. Firstly, we assume that both teacher-guided and self-regulated learning have to co-construct a computational scaffolding system. Roughly speaking, the teacher contributes the knowledge of the domain/skill, and the learner  contributes the capability to explore their individual talents.   Secondly, teacher and learner differ in their embodiment.  For simplification, we  formalize this by non-overlapping ground truth policies that are considered optimal w.r.t. skill improvement rate by the teacher and the learner, respectively (see next section for more detail). 
+The proposed meta unit manages interaction of the simulated teacher, simulated learner, and an agent. 
+The agent is  inspired by previous work in \cite{nature}, in which the authors pursue an adaptive and patient-customized therapeutic intervention for rehabilitation of reaching movement. There the simulated patients interact with a Q-learning algorithm that adjusts the virtual reality (VR) game according to the performance of the patient. Building upon this approach, in our work  a state corresponds to the skill level, and an action corresponds to an exercise unit. Reward reflects how hard the learner is working,  rewarding an improvement in the skill level.  
+Extending upon the work performed in~\cite{nature}, our agent is trained by $\epsilon$-greedy Dyna-Q RL~\cite{sutton} from both the learner learning process and the  teacher guidance data. Dyna-Q blends model-free and model-based RL approaches and is employed due to its  known sample efficiency.  In our approach it integrates the teacher and the learner embodiments (see next section for a detailed description), and results in a policy that optimizes the improvement  rate of the learner under this condition.  During training of the policy, the teacher guides the learner only in the situation when the learner's own learning strategy is not successful. 
+In the current approach the learner queries the agent to provide them with an exercise unit (action), given their level of skill (state) in each step. 
+Improvement rate is calculated based on how quickly the learner moves from one skill state to the next, while only such transitions are associated with a reward.  Currently, the RL agent is the only model being optimized. 
+
+\subsection{States, actions, rewards}
+The experimental setup consists of a set of states $S=\{s_1, \ldots, s_{15}\}$, which represents different skill levels.  The goal of the learner is to get from the state $s_1$ to the end state $s_{15}$. The set of actions $A= \{a_1,a_2,a_3\}$ represents exercise units, or the types of training that the learner can perform, either under guidance or by themselves.   The reward is equal 1,  in case the chosen action results in a transition from the current state $s_i$ to the next $s_{i+1}$, corresponding to the skill improvement. Otherwise, the reward is $r=0$.   In our work we assume that only two transitions are possible:  from $s_i$ to $s_{i+1}$  corresponding to skill improvement, or staying in same $s_i$, which  corresponds to staying on the same skill level.
+
+In order to model the differences in embodiment for the teacher and the learner, we have defined a tuple of individual ground truth actions that improve the skill level for the teacher and the learner policy, respectively. Only these result in a positive reward and a  transition to the next state, i.e. 
+$A^*_T:= (a_{T,1},\ldots, a_{T,15}) \neq (a_{L,1}, \ldots, a_{L,15}):= A^*_L$.  Here  $A^*_T$ denotes the tuple of optimal exercise units corresponding to the teacher policy, while $A^*_L$ corresponds to the exercise units optimal for the learner.  According to our assumption these tuples are not identical, however they are allowed to partially  overlap in order to allow for some similarities between the teacher and the learner.  
+ Therefore, by construction, there is an optimal  action $a_{T,i}$  and $a_{L,i}$  in each state $s_i, i \in (1,\ldots, 15)$, determined by the teacher and the learner differences in embodiment.   
+ 
+ \subsection{Teacher, learner, agent and the meta unit}
+ The pseudocode for the training of the meta unit is in Section  Appendix~\ref{code:meta}.
+To sum up the main modeling assumptions and functionalities:
+
+    \paragraph{The \textbf{teacher}} has one functionality - to guide according to their optimal policy $A^*_T$. Per design,  performed action is always rewarded with $r=1$, the learner skill state moves to the next level.  All data resulting from the intervention, $(s_t, a_t, s_{t+1}, r)$ are given to the RL-agent for training. 
+    
+    \paragraph{The \textbf{learner}} is simulated with an improvement probability threshold, currently set to 0.2. Through sampling from the uniform distribution and comparing the resulting value with the above threshold, we  determine, whether in case an optimal action according to $A^*_L$ is selected  and performed by the learner, the process results in  a state transition and a corresponding  reward, or in none of the above.  This simulates that even correct practice does not  results in an improvement directly.  Higher improvement threshold corresponds to more optimal actions leading to zero reward, and therefore, to a need for  higher intervention rate by the teacher. 
+    \paragraph{The \textbf{agent}} is a Dyna-Q reinforcement learner. Dyna-Q integrates model-based elements into Q-learning. Specifically, it uses a model of the environment to simulate experience and update Q-values, in addition to learning from real interactions. According to this, our implementation has a model-free table $q(s,a)$ for choosing of the action $a*$ with the highest Q-value, given state $s$;  and a model part for simulation, consisting of the transition function $\tau(s,a)$ that maps to $(s',r)$, i.e. for a state $s$ and action $a$ it models the state after transition $s'$ and the corresponding reward $r$.  The model-based part of the Dyna-Q is in particular responsible for modeling of the learner talents.  The agent is implemented with an $\epsilon$-greedy approach, i.e. we use  $\epsilon=0.1$ to define the exploration factor.   The agent samples its policy and offers the learner an exercise unit $a_i$ that either maximizes the Q-value or is random, given current state of the learner, and the available policy.  According to their improvement rate (described above) and in the case in which the action corresponds to the optimal action defined in $A^*_L$,  the learner performs the action, moves to the next skill level, receives the positive reward. The resulting data $(s_t, a_t, s_{t+1},r)$ is provided to the agent for training.  In the other case, in which the sampled value is below the improvement rate, or the action does not match to the ground truth, a reward $r=0$ is emitted. 
+     Importantly, the Q-learner updates all state-action-reward information that the experimental process yields.
+    \paragraph{The \textbf{meta unit}} is currently implemented as a Bernoulli distribution, and is directly parameterizd by the mean reward achieved during the past 10 steps by the learner. The exception are the first 10 steps. Here the learner is given a chance to learn completely by themselves.  The parameter that determines the teacher intervention probability is calculated as $(1 - \textrm{average reward})$ in each step. This means, the higher the average learner reward, the smaller the probability of the teacher intervention.  The smaller the average learner reward, corresponding to an unsuccessful self-guided learning, the higher the probability of the teacher intervention. In case the meta unit does not schedule the  teacher to intervene and   guide the learning, the action is generated by the Q-learner. This results in either a random action, or  a sample from the currently available Q-table.  This enables the learner to either learn by themselves, or get guidance from the teacher, if they seem not to improve quickly enough.
+
+
+\section{Results}
+We have trained the Q-learner under the supervision of the  meta unit. In each step, the meta unit decides, based on the average reward analysis, whether the teacher should guide, or the learner should query the Q-learner agent to generate an action (random or optimized based on the currently available policy). 
+We employ embodiments of the learner and  the teacher  $A^*_L$ and $A^*_T$, respectively, to assess which actions, given the state of the learner, generate a skill improvement and a positive reward. We    evaluate the policy w.r.t. improvement ratio for multiple  training runs under the supervision of the meta-unit. After each number of training runs, we evaluate how well  the resulting trained policy represented only by the Q-learner agent is capable of guiding the learner, without the meta unit, resulting in no teacher intervention.      
+
+The improvement rate of the human learner ($x$-axis) achieved for different number of training iterations performed by the meta unit ($y$-axis) is  illustrated in Figure \ref{fig:my_label} (Appendix) in grey color. Here the teacher and the Q-agent guide the learner together. 
+We have also performed the evaluation of the resulting trained policy, i.e. scaffolding without teacher guidance, performed  just by the \textit{frozen}  Q-agent after the training with the meta-unit has been finished. This means that just the trained Q-learner generates the exercise units and the learner either succeeds in transition or not, determined by the correctness of the action and the improvement threshold of the learner. The evaluation of the corresponding Q-learner model is showed in blue color in the same Figure \ref{fig:my_label}.  We have trained and evaluated the meta unit for the case in which 1/5th of the optimal actions were different for the teacher and the learner  ($A^*_T$ and  $A^*_L$, respectively).  The results  in the grey plot show that  the higher  number of training episodes performed by the meta unit result in higher improvement rate achieved by the learner,  which is calculated as an average of the received rewards given the number of learning steps until the end state is achieved.  After approx. 40 training runs, we can observe a saturation. The resulting improvement rate oscillates around the level of 0.8.  The frozen Q-learner  employed alone without teacher interventions (blue colored plot) yields an improvement rate that is lower than the meta unit policy (grey colored plot) on the whole range of the $x-$axis.  These results may imply that it is better to use the meta unit rather than the trained Q-learner alone in the case in which the teacher and the learner are assumed to have different embodiments.  
+
+
+\section{Discussion}
+
+We presented a method for co-constructing a scaffold to guide the learner, with a focus on the differences between the teacher and learner embodiments. Since we assume that the overlap between the optimal actions of the teacher and learner is unknown, our current approach utilizes all available information, i.e. state, transition, action, and reward from both teacher guidance and learner actions, to train the Q-learner.  This likely explains why  individual performance of the Q-learner is inferior to that of the meta unit. In future work, we aim to implement a more advanced training method for the Q-agent, which can identify instances where the teacher’s guiding actions do not overlap with the learner’s optimal actions and exclude such guidance from Q-learner training.
+
+For long-term future work, there exist an approach that, to our knowledge,  has not yet found realization in the computational motor learning research, is something that  we call \textit{adversarial scaffolding}. This describes giving exercises to the learner that are slightly or more  beyond their current capacity, which, therefore, lead the learner to get outside their comfort zone.  For example, the musicians practice playing a piece in the reverse order, or with an extended rhythmic structure.  This is a potentially interesting topic for computational modelling and we will attempt to integrate this idea into the simulated  experiment in the next step of our work. To this end, we will need to define a more sophisticated state and action simulation.  This is a necessary step before conducting experiments with real learners. 
+
+
+
+% \subsection{Retrieval of style files}
+
+
+% The style files for NeurIPS and other conference information are available on
+% the website at
+% \begin{center}
+%   \url{http://www.neurips.cc/}
+% \end{center}
+% The file \verb+neurips_2024.pdf+ contains these instructions and illustrates the
+% various formatting requirements your NeurIPS paper must satisfy.
+
+
+% The only supported style file for NeurIPS 2024 is \verb+neurips_2024.sty+,
+% rewritten for \LaTeXe{}.  \textbf{Previous style files for \LaTeX{} 2.09,
+%   Microsoft Word, and RTF are no longer supported!}
+
+
+% The \LaTeX{} style file contains three optional arguments: \verb+final+, which
+% creates a camera-ready copy, \verb+preprint+, which creates a preprint for
+% submission to, e.g., arXiv, and \verb+nonatbib+, which will not load the
+% \verb+natbib+ package for you in case of package clash.
+
+
+% \paragraph{Preprint option}
+% If you wish to post a preprint of your work online, e.g., on arXiv, using the
+% NeurIPS style, please use the \verb+preprint+ option. This will create a
+% nonanonymized version of your work with the text ``Preprint. Work in progress.''
+% in the footer. This version may be distributed as you see fit, as long as you do not say which conference it was submitted to. Please \textbf{do
+%   not} use the \verb+final+ option, which should \textbf{only} be used for
+% papers accepted to NeurIPS.
+
+
+% At submission time, please omit the \verb+final+ and \verb+preprint+
+% options. This will anonymize your submission and add line numbers to aid
+% review. Please do \emph{not} refer to these line numbers in your paper as they
+% will be removed during generation of camera-ready copies.
+
+
+% The file \verb+neurips_2024.tex+ may be used as a ``shell'' for writing your
+% paper. All you have to do is replace the author, title, abstract, and text of
+% the paper with your own.
+
+
+% The formatting instructions contained in these style files are summarized in
+% Sections \ref{gen_inst}, \ref{headings}, and \ref{others} below.
+
+
+% \section{General formatting instructions}
+% \label{gen_inst}
+
+
+% The text must be confined within a rectangle 5.5~inches (33~picas) wide and
+% 9~inches (54~picas) long. The left margin is 1.5~inch (9~picas).  Use 10~point
+% type with a vertical spacing (leading) of 11~points.  Times New Roman is the
+% preferred typeface throughout, and will be selected for you by default.
+% Paragraphs are separated by \nicefrac{1}{2}~line space (5.5 points), with no
+% indentation.
+
+
+% The paper title should be 17~point, initial caps/lower case, bold, centered
+% between two horizontal rules. The top rule should be 4~points thick and the
+% bottom rule should be 1~point thick. Allow \nicefrac{1}{4}~inch space above and
+% below the title to rules. All pages should start at 1~inch (6~picas) from the
+% top of the page.
+
+
+% For the final version, authors' names are set in boldface, and each name is
+% centered above the corresponding address. The lead author's name is to be listed
+% first (left-most), and the co-authors' names (if different address) are set to
+% follow. If there is only one co-author, list both author and co-author side by
+% side.
+
+
+% Please pay special attention to the instructions in Section \ref{others}
+% regarding figures, tables, acknowledgments, and references.
+
+
+% \section{Headings: first level}
+% \label{headings}
+
+
+% All headings should be lower case (except for first word and proper nouns),
+% flush left, and bold.
+
+
+% First-level headings should be in 12-point type.
+
+
+% \subsection{Headings: second level}
+
+
+% Second-level headings should be in 10-point type.
+
+
+% \subsubsection{Headings: third level}
+
+
+% Third-level headings should be in 10-point type.
+
+
+% \paragraph{Paragraphs}
+
+
+% There is also a \verb+\paragraph+ command available, which sets the heading in
+% bold, flush left, and inline with the text, with the heading followed by 1\,em
+% of space.
+
+
+% \section{Citations, figures, tables, references}
+% \label{others}
+
+
+% These instructions apply to everyone.
+
+
+% \subsection{Citations within the text}
+
+
+% The \verb+natbib+ package will be loaded for you by default.  Citations may be
+% author/year or numeric, as long as you maintain internal consistency.  As to the
+% format of the references themselves, any style is acceptable as long as it is
+% used consistently.
+
+
+% The documentation for \verb+natbib+ may be found at
+% \begin{center}
+%   \url{http://mirrors.ctan.org/macros/latex/contrib/natbib/natnotes.pdf}
+% \end{center}
+% Of note is the command \verb+\citet+, which produces citations appropriate for
+% use in inline text.  For example,
+% \begin{verbatim}
+%   \citet{hasselmo} investigated\dots
+% \end{verbatim}
+% produces
+% \begin{quote}
+%   Hasselmo, et al.\ (1995) investigated\dots
+% \end{quote}
+
+
+% If you wish to load the \verb+natbib+ package with options, you may add the
+% following before loading the \verb+neurips_2024+ package:
+% \begin{verbatim}
+%   \PassOptionsToPackage{options}{natbib}
+% \end{verbatim}
+
+
+% If \verb+natbib+ clashes with another package you load, you can add the optional
+% argument \verb+nonatbib+ when loading the style file:
+% \begin{verbatim}
+%   \usepackage[nonatbib]{neurips_2024}
+% \end{verbatim}
+
+
+% As submission is double blind, refer to your own published work in the third
+% person. That is, use ``In the previous work of Jones et al.\ [4],'' not ``In our
+% previous work [4].'' If you cite your other papers that are not widely available
+% (e.g., a journal paper under review), use anonymous author names in the
+% citation, e.g., an author of the form ``A.\ Anonymous'' and include a copy of the anonymized paper in the supplementary material.
+
+
+% \subsection{Footnotes}
+
+
+% Footnotes should be used sparingly.  If you do require a footnote, indicate
+% footnotes with a number\footnote{Sample of the first footnote.} in the
+% text. Place the footnotes at the bottom of the page on which they appear.
+% Precede the footnote with a horizontal rule of 2~inches (12~picas).
+
+
+% Note that footnotes are properly typeset \emph{after} punctuation
+% marks.\footnote{As in this example.}
+
+
+% \subsection{Figures}
+
+
+% \begin{figure}
+%   \centering
+%   \fbox{\rule[-.5cm]{0cm}{4cm} \rule[-.5cm]{4cm}{0cm}}
+%   \caption{Sample figure caption.}
+% \end{figure}
+
+
+% All artwork must be neat, clean, and legible. Lines should be dark enough for
+% purposes of reproduction. The figure number and caption always appear after the
+% figure. Place one line space before the figure caption and one line space after
+% the figure. The figure caption should be lower case (except for first word and
+% proper nouns); figures are numbered consecutively.
+
+
+% You may use color figures.  However, it is best for the figure captions and the
+% paper body to be legible if the paper is printed in either black/white or in
+% color.
+
+
+% \subsection{Tables}
+
+
+% All tables must be centered, neat, clean and legible.  The table number and
+% title always appear before the table.  See Table~\ref{sample-table}.
+
+
+% Place one line space before the table title, one line space after the
+% table title, and one line space after the table. The table title must
+% be lower case (except for first word and proper nouns); tables are
+% numbered consecutively.
+
+
+% Note that publication-quality tables \emph{do not contain vertical rules.} We
+% strongly suggest the use of the \verb+booktabs+ package, which allows for
+% typesetting high-quality, professional tables:
+% \begin{center}
+%   \url{https://www.ctan.org/pkg/booktabs}
+% \end{center}
+% This package was used to typeset Table~\ref{sample-table}.
+
+
+% \begin{table}
+%   \caption{Sample table title}
+%   \label{sample-table}
+%   \centering
+%   \begin{tabular}{lll}
+%     \toprule
+%     \multicolumn{2}{c}{Part}                   \\
+%     \cmidrule(r){1-2}
+%     Name     & Description     & Size ($\mu$m) \\
+%     \midrule
+%     Dendrite & Input terminal  & $\sim$100     \\
+%     Axon     & Output terminal & $\sim$10      \\
+%     Soma     & Cell body       & up to $10^6$  \\
+%     \bottomrule
+%   \end{tabular}
+% \end{table}
+
+% \subsection{Math}
+% Note that display math in bare TeX commands will not create correct line numbers for submission. Please use LaTeX (or AMSTeX) commands for unnumbered display math. (You really shouldn't be using \$\$ anyway; see \url{https://tex.stackexchange.com/questions/503/why-is-preferable-to} and \url{https://tex.stackexchange.com/questions/40492/what-are-the-differences-between-align-equation-and-displaymath} for more information.)
+
+% \subsection{Final instructions}
+
+% Do not change any aspects of the formatting parameters in the style files.  In
+% particular, do not modify the width or length of the rectangle the text should
+% fit into, and do not change font sizes (except perhaps in the
+% \textbf{References} section; see below). Please note that pages should be
+% numbered.
+
+
+% \section{Preparing PDF files}
+
+
+% Please prepare submission files with paper size ``US Letter,'' and not, for
+% example, ``A4.''
+
+
+% Fonts were the main cause of problems in the past years. Your PDF file must only
+% contain Type 1 or Embedded TrueType fonts. Here are a few instructions to
+% achieve this.
+
+
+% \begin{itemize}
+
+
+% \item You should directly generate PDF files using \verb+pdflatex+.
+
+
+% \item You can check which fonts a PDF files uses.  In Acrobat Reader, select the
+%   menu Files$>$Document Properties$>$Fonts and select Show All Fonts. You can
+%   also use the program \verb+pdffonts+ which comes with \verb+xpdf+ and is
+%   available out-of-the-box on most Linux machines.
+
+
+% \item \verb+xfig+ "patterned" shapes are implemented with bitmap fonts.  Use
+%   "solid" shapes instead.
+
+
+% \item The \verb+\bbold+ package almost always uses bitmap fonts.  You should use
+%   the equivalent AMS Fonts:
+% \begin{verbatim}
+%   \usepackage{amsfonts}
+% \end{verbatim}
+% followed by, e.g., \verb+\mathbb{R}+, \verb+\mathbb{N}+, or \verb+\mathbb{C}+
+% for $\mathbb{R}$, $\mathbb{N}$ or $\mathbb{C}$.  You can also use the following
+% workaround for reals, natural and complex:
+% \begin{verbatim}
+%   \newcommand{\RR}{I\!\!R} %real numbers
+%   \newcommand{\Nat}{I\!\!N} %natural numbers
+%   \newcommand{\CC}{I\!\!\!\!C} %complex numbers
+% \end{verbatim}
+% Note that \verb+amsfonts+ is automatically loaded by the \verb+amssymb+ package.
+
+
+% \end{itemize}
+
+
+% If your file contains type 3 fonts or non embedded TrueType fonts, we will ask
+% you to fix it.
+
+
+% \subsection{Margins in \LaTeX{}}
+
+
+% Most of the margin problems come from figures positioned by hand using
+% \verb+\special+ or other commands. We suggest using the command
+% \verb+\includegraphics+ from the \verb+graphicx+ package. Always specify the
+% figure width as a multiple of the line width as in the example below:
+% \begin{verbatim}
+%   \usepackage[pdftex]{graphicx} ...
+%   \includegraphics[width=0.8\linewidth]{myfile.pdf}
+% \end{verbatim}
+% See Section 4.4 in the graphics bundle documentation
+% (\url{http://mirrors.ctan.org/macros/latex/required/graphics/grfguide.pdf})
+
+
+% A number of width problems arise when \LaTeX{} cannot properly hyphenate a
+% line. Please give LaTeX hyphenation hints using the \verb+\-+ command when
+% necessary.
+
+% \begin{ack}
+% Use unnumbered first level headings for the acknowledgments. All acknowledgments
+% go at the end of the paper before the list of references. Moreover, you are required to declare
+% funding (financial activities supporting the submitted work) and competing interests (related financial activities outside the submitted work).
+% More information about this disclosure can be found at: \url{https://neurips.cc/Conferences/2024/PaperInformation/FundingDisclosure}.
+
+
+% Do {\bf not} include this section in the anonymized submission, only in the final paper. You can use the \texttt{ack} environment provided in the style file to automatically hide this section in the anonymized submission.
+% \end{ack}
+
+%\section*{References}
+
+\bibliographystyle{plain}
+\begin{thebibliography}{9}
+\bibitem{gauss}
+Generating Piano Practice Policy with a Gaussian Process.
+Alexandra Moringen, Elad Vromen, Helge Ritter, Jason Friedman Proceedings of the 2024 AAAI Conference on Artificial Intelligence, PMLR 257:151-161, 2024. 
+
+\bibitem{nature}
+Personalized rehabilitation approach for reaching movement using reinforcement learning. Pelosi, A.D., Roth, N., Yehoshua, T. et al.  Sci Rep 14, 17675 (2024). https://doi.org/10.1038/s41598-024-64514-6
+
+\bibitem{soeren}
+Optimizing piano practice with a utility-based scaffold.
+Alexandra Moringen, Sören Rüttgers, Luisa Zintgraf, Jason Friedman, Helge Ritter,  (2020)	https://doi.org/10.48550/arXiv.2106.12937
+
+\bibitem{megha}
+Assistive Teaching of Motor Control Tasks to Humans.
+Megha Srivastava, Erdem Biyik, Suvir Mirchandani, Noah Goodman, Dorsa Sadigh, Neurips (2022).
+
+\bibitem{encyclopedia}
+Encyclopedia of the Sciences of Learning.
+Editor: Seel, Norbert M., 2012,  doi = {10.1007/978-1-4419-1428-6}  
+
+\bibitem{brunskill23}
+Towards the Future of AI-Augmented Human
+Tutoring in Math Learning.
+Vincent Aleven, Richard Baraniuk, Emma Brunskill, Scott Crossley,
+Dora Demszky, Stephen Fancsali, Shivang Gupta, Kenneth Koedinger,
+Chris Piech, Steve Ritter, Danielle R. Thomas1, Simon Woodhead,
+and Wanli Xing. International Conference on Artificial Intelligence in Education (2023)
+
+\bibitem{passen21}
+Progress Networks as a Tool for Analysing Student Programming Difficulties
+McBroom J, Paaßen B, Jeffries B, Koprinska I, Yacef K (2021)
+In: Proceedings of the Twenty-Third Australasian Computing Education Conference (ACE '21). Szabo C, Sheard J (Eds); Association for Computing Machinery: 158–167.
+
+\bibitem{amy}
+Real-Time AI-Driven Assessment and Scaffolding that Improves Students’ Mathematical Modeling during Science Investigations
+Authors: Amy Adair, Michael Sao Pedro, Janice Gobert, Ellie SeganAuthors Info \& Claims. Artificial Intelligence in Education: 24th International Conference, AIED 2023.
+
+\bibitem{cortot}
+Chopin: 12 Studies for Piano, Op. 10. Alfred Cortot, editor. BMG Ricordi, 1986. ISBN
+978-1-4803-0456-7. Editor: Cortot, Alfred
+
+\bibitem{sutton}
+Dyna-Q, http://www.incompleteideas.net/book/ebook/node96.html
+\end{thebibliography}
+
+\newpage 
+\appendix
+\section{Training and evaluation}
+Figure \ref{fig:my_label} provides an overview of training performed by the meta-unit (grey).
+Blue corresponds to the evaluation of the guidance performed by the trained Q-learner only, without the teacher interventions.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=.95\linewidth]{figures/meta-unit-mean.png}
+       \caption{Training and evaluation of the meta unit. Grey color illustrates the mean and variance of improvement rate of the learner with the growing number of training iterations guided by the meta unit (averaged over 20 runs).  Blue color illustrates the policy evaluation of the trained Q-learner alone, without the teacher guidance. Mean and variance of the improvement rate of the learner with growing number of iterations  (averaged over 20 runs).  }
+    \label{fig:my_label}
+\end{figure}
+\newpage
+\section{Pseudo code for training with the meta unit}
+\label{code:meta}
+\begin{algorithm}
+\caption{Training with the meta unit}
+\begin{algorithmic}[1]
+\State calculate average reward of the learner \Return $p$
+\State parameterize Bernoulli distribution with $p$  and sample from it \Return $s$ 
+\If{$s==1$}
+    \State schedule teacher intervention \Return $a^*_T$
+    \State sample learner improvement probability \Return $v$
+    \If{$v$ > improvement threshold}
+        \State perform  $a^*_T$
+        \State \Return $r = 1$; improve skill level: move from $s_t$ to $s_{t+1}$
+    \Else 
+        \State \Return $r=0$
+    \EndIf
+\Else 
+    \State Query Q-agent \Return  $a^*_Q$
+    \State sample learner improvement probability \Return $v$
+    \If{$v$ > improvement threshold \textbf{and} $a^*_Q == a^*_L$}  
+        \State perform $a^*_Q$
+        \State \Return $r = 1$, improve skill level from $s_t$ to $s_{t+1}$
+    \Else 
+        \State \Return $r=0$
+    \EndIf  
+\EndIf
+\State update the Q-learner
+\end{algorithmic}
+\end{algorithm}
+
+
+% References follow the acknowledgments in the camera-ready paper. Use unnumbered first-level heading for
+% the references. Any choice of citation style is acceptable as long as you are
+% consistent. It is permissible to reduce the font size to \verb+small+ (9 point)
+% when listing the references.
+% Note that the Reference section does not count towards the page limit.
+% \medskip
+
+
+% {
+% \small
+
+
+% [1] Alexander, J.A.\ \& Mozer, M.C.\ (1995) Template-based algorithms for
+% connectionist rule extraction. In G.\ Tesauro, D.S.\ Touretzky and T.K.\ Leen
+% (eds.), {\it Advances in Neural Information Processing Systems 7},
+% pp.\ 609--616. Cambridge, MA: MIT Press.
+
+
+% [2] Bower, J.M.\ \& Beeman, D.\ (1995) {\it The Book of GENESIS: Exploring
+%   Realistic Neural Models with the GEneral NEural SImulation System.}  New York:
+% TELOS/Springer--Verlag.
+
+
+% [3] Hasselmo, M.E., Schnell, E.\ \& Barkai, E.\ (1995) Dynamics of learning and
+% recall at excitatory recurrent synapses and cholinergic modulation in rat
+% hippocampal region CA3. {\it Journal of Neuroscience} {\bf 15}(7):5249-5262.
+% }
+
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% \appendix
+
+% \section{Appendix / supplemental material}
+
+
+% Optionally include supplemental material (complete proofs, additional experiments and plots) in appendix.
+% All such materials \textbf{SHOULD be included in the main submission.}
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% \newpage
+% \section*{NeurIPS Paper Checklist}
+
+% %%% BEGIN INSTRUCTIONS %%%
+% The checklist is designed to encourage best practices for responsible machine learning research, addressing issues of reproducibility, transparency, research ethics, and societal impact. Do not remove the checklist: {\bf The papers not including the checklist will be desk rejected.} The checklist should follow the references and follow the (optional) supplemental material.  The checklist does NOT count towards the page
+% limit. 
+
+% Please read the checklist guidelines carefully for information on how to answer these questions. For each question in the checklist:
+% \begin{itemize}
+%     \item You should answer \answerYes{}, \answerNo{}, or \answerNA{}.
+%     \item \answerNA{} means either that the question is Not Applicable for that particular paper or the relevant information is Not Available.
+%     \item Please provide a short (1–2 sentence) justification right after your answer (even for NA). 
+%   % \item {\bf The papers not including the checklist will be desk rejected.}
+% \end{itemize}
+
+% {\bf The checklist answers are an integral part of your paper submission.} They are visible to the reviewers, area chairs, senior area chairs, and ethics reviewers. You will be asked to also include it (after eventual revisions) with the final version of your paper, and its final version will be published with the paper.
+
+% The reviewers of your paper will be asked to use the checklist as one of the factors in their evaluation. While "\answerYes{}" is generally preferable to "\answerNo{}", it is perfectly acceptable to answer "\answerNo{}" provided a proper justification is given (e.g., "error bars are not reported because it would be too computationally expensive" or "we were unable to find the license for the dataset we used"). In general, answering "\answerNo{}" or "\answerNA{}" is not grounds for rejection. While the questions are phrased in a binary way, we acknowledge that the true answer is often more nuanced, so please just use your best judgment and write a justification to elaborate. All supporting evidence can appear either in the main paper or the supplemental material, provided in appendix. If you answer \answerYes{} to a question, in the justification please point to the section(s) where related material for the question can be found.
+
+% IMPORTANT, please:
+% \begin{itemize}
+%     \item {\bf Delete this instruction block, but keep the section heading ``NeurIPS paper checklist"},
+%     \item  {\bf Keep the checklist subsection headings, questions/answers and guidelines below.}
+%     \item {\bf Do not modify the questions and only use the provided macros for your answers}.
+% \end{itemize} 
+ 
+
+% %%% END INSTRUCTIONS %%%
+
+
+% \begin{enumerate}
+
+% \item {\bf Claims}
+%     \item[] Question: Do the main claims made in the abstract and introduction accurately reflect the paper's contributions and scope?
+%     \item[] Answer: \answerTODO{} % Replace by \answerYes{}, \answerNo{}, or \answerNA{}.
+%     \item[] Justification: \justificationTODO{}
+%     \item[] Guidelines:
+%     \begin{itemize}
+%         \item The answer NA means that the abstract and introduction do not include the claims made in the paper.
+%         \item The abstract and/or introduction should clearly state the claims made, including the contributions made in the paper and important assumptions and limitations. A No or NA answer to this question will not be perceived well by the reviewers. 
+%         \item The claims made should match theoretical and experimental results, and reflect how much the results can be expected to generalize to other settings. 
+%         \item It is fine to include aspirational goals as motivation as long as it is clear that these goals are not attained by the paper. 
+%     \end{itemize}
+
+% \item {\bf Limitations}
+%     \item[] Question: Does the paper discuss the limitations of the work performed by the authors?
+%     \item[] Answer: \answerTODO{} % Replace by \answerYes{}, \answerNo{}, or \answerNA{}.
+%     \item[] Justification: \justificationTODO{}
+%     \item[] Guidelines:
+%     \begin{itemize}
+%         \item The answer NA means that the paper has no limitation while the answer No means that the paper has limitations, but those are not discussed in the paper. 
+%         \item The authors are encouraged to create a separate "Limitations" section in their paper.
+%         \item The paper should point out any strong assumptions and how robust the results are to violations of these assumptions (e.g., independence assumptions, noiseless settings, model well-specification, asymptotic approximations only holding locally). The authors should reflect on how these assumptions might be violated in practice and what the implications would be.
+%         \item The authors should reflect on the scope of the claims made, e.g., if the approach was only tested on a few datasets or with a few runs. In general, empirical results often depend on implicit assumptions, which should be articulated.
+%         \item The authors should reflect on the factors that influence the performance of the approach. For example, a facial recognition algorithm may perform poorly when image resolution is low or images are taken in low lighting. Or a speech-to-text system might not be used reliably to provide closed captions for online lectures because it fails to handle technical jargon.
+%         \item The authors should discuss the computational efficiency of the proposed algorithms and how they scale with dataset size.
+%         \item If applicable, the authors should discuss possible limitations of their approach to address problems of privacy and fairness.
+%         \item While the authors might fear that complete honesty about limitations might be used by reviewers as grounds for rejection, a worse outcome might be that reviewers discover limitations that aren't acknowledged in the paper. The authors should use their best judgment and recognize that individual actions in favor of transparency play an important role in developing norms that preserve the integrity of the community. Reviewers will be specifically instructed to not penalize honesty concerning limitations.
+%     \end{itemize}
+
+% \item {\bf Theory Assumptions and Proofs}
+%     \item[] Question: For each theoretical result, does the paper provide the full set of assumptions and a complete (and correct) proof?
+%     \item[] Answer: \answerTODO{} % Replace by \answerYes{}, \answerNo{}, or \answerNA{}.
+%     \item[] Justification: \justificationTODO{}
+%     \item[] Guidelines:
+%     \begin{itemize}
+%         \item The answer NA means that the paper does not include theoretical results. 
+%         \item All the theorems, formulas, and proofs in the paper should be numbered and cross-referenced.
+%         \item All assumptions should be clearly stated or referenced in the statement of any theorems.
+%         \item The proofs can either appear in the main paper or the supplemental material, but if they appear in the supplemental material, the authors are encouraged to provide a short proof sketch to provide intuition. 
+%         \item Inversely, any informal proof provided in the core of the paper should be complemented by formal proofs provided in appendix or supplemental material.
+%         \item Theorems and Lemmas that the proof relies upon should be properly referenced. 
+%     \end{itemize}
+
+%     \item {\bf Experimental Result Reproducibility}
+%     \item[] Question: Does the paper fully disclose all the information needed to reproduce the main experimental results of the paper to the extent that it affects the main claims and/or conclusions of the paper (regardless of whether the code and data are provided or not)?
+%     \item[] Answer: \answerTODO{} % Replace by \answerYes{}, \answerNo{}, or \answerNA{}.
+%     \item[] Justification: \justificationTODO{}
+%     \item[] Guidelines:
+%     \begin{itemize}
+%         \item The answer NA means that the paper does not include experiments.
+%         \item If the paper includes experiments, a No answer to this question will not be perceived well by the reviewers: Making the paper reproducible is important, regardless of whether the code and data are provided or not.
+%         \item If the contribution is a dataset and/or model, the authors should describe the steps taken to make their results reproducible or verifiable. 
+%         \item Depending on the contribution, reproducibility can be accomplished in various ways. For example, if the contribution is a novel architecture, describing the architecture fully might suffice, or if the contribution is a specific model and empirical evaluation, it may be necessary to either make it possible for others to replicate the model with the same dataset, or provide access to the model. In general. releasing code and data is often one good way to accomplish this, but reproducibility can also be provided via detailed instructions for how to replicate the results, access to a hosted model (e.g., in the case of a large language model), releasing of a model checkpoint, or other means that are appropriate to the research performed.
+%         \item While NeurIPS does not require releasing code, the conference does require all submissions to provide some reasonable avenue for reproducibility, which may depend on the nature of the contribution. For example
+%         \begin{enumerate}
+%             \item If the contribution is primarily a new algorithm, the paper should make it clear how to reproduce that algorithm.
+%             \item If the contribution is primarily a new model architecture, the paper should describe the architecture clearly and fully.
+%             \item If the contribution is a new model (e.g., a large language model), then there should either be a way to access this model for reproducing the results or a way to reproduce the model (e.g., with an open-source dataset or instructions for how to construct the dataset).
+%             \item We recognize that reproducibility may be tricky in some cases, in which case authors are welcome to describe the particular way they provide for reproducibility. In the case of closed-source models, it may be that access to the model is limited in some way (e.g., to registered users), but it should be possible for other researchers to have some path to reproducing or verifying the results.
+%         \end{enumerate}
+%     \end{itemize}
+
+
+% \item {\bf Open access to data and code}
+%     \item[] Question: Does the paper provide open access to the data and code, with sufficient instructions to faithfully reproduce the main experimental results, as described in supplemental material?
+%     \item[] Answer: \answerTODO{} % Replace by \answerYes{}, \answerNo{}, or \answerNA{}.
+%     \item[] Justification: \justificationTODO{}
+%     \item[] Guidelines:
+%     \begin{itemize}
+%         \item The answer NA means that paper does not include experiments requiring code.
+%         \item Please see the NeurIPS code and data submission guidelines (\url{https://nips.cc/public/guides/CodeSubmissionPolicy}) for more details.
+%         \item While we encourage the release of code and data, we understand that this might not be possible, so “No” is an acceptable answer. Papers cannot be rejected simply for not including code, unless this is central to the contribution (e.g., for a new open-source benchmark).
+%         \item The instructions should contain the exact command and environment needed to run to reproduce the results. See the NeurIPS code and data submission guidelines (\url{https://nips.cc/public/guides/CodeSubmissionPolicy}) for more details.
+%         \item The authors should provide instructions on data access and preparation, including how to access the raw data, preprocessed data, intermediate data, and generated data, etc.
+%         \item The authors should provide scripts to reproduce all experimental results for the new proposed method and baselines. If only a subset of experiments are reproducible, they should state which ones are omitted from the script and why.
+%         \item At submission time, to preserve anonymity, the authors should release anonymized versions (if applicable).
+%         \item Providing as much information as possible in supplemental material (appended to the paper) is recommended, but including URLs to data and code is permitted.
+%     \end{itemize}
+
+
+% \item {\bf Experimental Setting/Details}
+%     \item[] Question: Does the paper specify all the training and test details (e.g., data splits, hyperparameters, how they were chosen, type of optimizer, etc.) necessary to understand the results?
+%     \item[] Answer: \answerTODO{} % Replace by \answerYes{}, \answerNo{}, or \answerNA{}.
+%     \item[] Justification: \justificationTODO{}
+%     \item[] Guidelines:
+%     \begin{itemize}
+%         \item The answer NA means that the paper does not include experiments.
+%         \item The experimental setting should be presented in the core of the paper to a level of detail that is necessary to appreciate the results and make sense of them.
+%         \item The full details can be provided either with the code, in appendix, or as supplemental material.
+%     \end{itemize}
+
+% \item {\bf Experiment Statistical Significance}
+%     \item[] Question: Does the paper report error bars suitably and correctly defined or other appropriate information about the statistical significance of the experiments?
+%     \item[] Answer: \answerTODO{} % Replace by \answerYes{}, \answerNo{}, or \answerNA{}.
+%     \item[] Justification: \justificationTODO{}
+%     \item[] Guidelines:
+%     \begin{itemize}
+%         \item The answer NA means that the paper does not include experiments.
+%         \item The authors should answer "Yes" if the results are accompanied by error bars, confidence intervals, or statistical significance tests, at least for the experiments that support the main claims of the paper.
+%         \item The factors of variability that the error bars are capturing should be clearly stated (for example, train/test split, initialization, random drawing of some parameter, or overall run with given experimental conditions).
+%         \item The method for calculating the error bars should be explained (closed form formula, call to a library function, bootstrap, etc.)
+%         \item The assumptions made should be given (e.g., Normally distributed errors).
+%         \item It should be clear whether the error bar is the standard deviation or the standard error of the mean.
+%         \item It is OK to report 1-sigma error bars, but one should state it. The authors should preferably report a 2-sigma error bar than state that they have a 96\% CI, if the hypothesis of Normality of errors is not verified.
+%         \item For asymmetric distributions, the authors should be careful not to show in tables or figures symmetric error bars that would yield results that are out of range (e.g. negative error rates).
+%         \item If error bars are reported in tables or plots, The authors should explain in the text how they were calculated and reference the corresponding figures or tables in the text.
+%     \end{itemize}
+
+% \item {\bf Experiments Compute Resources}
+%     \item[] Question: For each experiment, does the paper provide sufficient information on the computer resources (type of compute workers, memory, time of execution) needed to reproduce the experiments?
+%     \item[] Answer: \answerTODO{} % Replace by \answerYes{}, \answerNo{}, or \answerNA{}.
+%     \item[] Justification: \justificationTODO{}
+%     \item[] Guidelines:
+%     \begin{itemize}
+%         \item The answer NA means that the paper does not include experiments.
+%         \item The paper should indicate the type of compute workers CPU or GPU, internal cluster, or cloud provider, including relevant memory and storage.
+%         \item The paper should provide the amount of compute required for each of the individual experimental runs as well as estimate the total compute. 
+%         \item The paper should disclose whether the full research project required more compute than the experiments reported in the paper (e.g., preliminary or failed experiments that didn't make it into the paper). 
+%     \end{itemize}
+    
+% \item {\bf Code Of Ethics}
+%     \item[] Question: Does the research conducted in the paper conform, in every respect, with the NeurIPS Code of Ethics \url{https://neurips.cc/public/EthicsGuidelines}?
+%     \item[] Answer: \answerTODO{} % Replace by \answerYes{}, \answerNo{}, or \answerNA{}.
+%     \item[] Justification: \justificationTODO{}
+%     \item[] Guidelines:
+%     \begin{itemize}
+%         \item The answer NA means that the authors have not reviewed the NeurIPS Code of Ethics.
+%         \item If the authors answer No, they should explain the special circumstances that require a deviation from the Code of Ethics.
+%         \item The authors should make sure to preserve anonymity (e.g., if there is a special consideration due to laws or regulations in their jurisdiction).
+%     \end{itemize}
+
+
+% \item {\bf Broader Impacts}
+%     \item[] Question: Does the paper discuss both potential positive societal impacts and negative societal impacts of the work performed?
+%     \item[] Answer: \answerTODO{} % Replace by \answerYes{}, \answerNo{}, or \answerNA{}.
+%     \item[] Justification: \justificationTODO{}
+%     \item[] Guidelines:
+%     \begin{itemize}
+%         \item The answer NA means that there is no societal impact of the work performed.
+%         \item If the authors answer NA or No, they should explain why their work has no societal impact or why the paper does not address societal impact.
+%         \item Examples of negative societal impacts include potential malicious or unintended uses (e.g., disinformation, generating fake profiles, surveillance), fairness considerations (e.g., deployment of technologies that could make decisions that unfairly impact specific groups), privacy considerations, and security considerations.
+%         \item The conference expects that many papers will be foundational research and not tied to particular applications, let alone deployments. However, if there is a direct path to any negative applications, the authors should point it out. For example, it is legitimate to point out that an improvement in the quality of generative models could be used to generate deepfakes for disinformation. On the other hand, it is not needed to point out that a generic algorithm for optimizing neural networks could enable people to train models that generate Deepfakes faster.
+%         \item The authors should consider possible harms that could arise when the technology is being used as intended and functioning correctly, harms that could arise when the technology is being used as intended but gives incorrect results, and harms following from (intentional or unintentional) misuse of the technology.
+%         \item If there are negative societal impacts, the authors could also discuss possible mitigation strategies (e.g., gated release of models, providing defenses in addition to attacks, mechanisms for monitoring misuse, mechanisms to monitor how a system learns from feedback over time, improving the efficiency and accessibility of ML).
+%     \end{itemize}
+    
+% \item {\bf Safeguards}
+%     \item[] Question: Does the paper describe safeguards that have been put in place for responsible release of data or models that have a high risk for misuse (e.g., pretrained language models, image generators, or scraped datasets)?
+%     \item[] Answer: \answerTODO{} % Replace by \answerYes{}, \answerNo{}, or \answerNA{}.
+%     \item[] Justification: \justificationTODO{}
+%     \item[] Guidelines:
+%     \begin{itemize}
+%         \item The answer NA means that the paper poses no such risks.
+%         \item Released models that have a high risk for misuse or dual-use should be released with necessary safeguards to allow for controlled use of the model, for example by requiring that users adhere to usage guidelines or restrictions to access the model or implementing safety filters. 
+%         \item Datasets that have been scraped from the Internet could pose safety risks. The authors should describe how they avoided releasing unsafe images.
+%         \item We recognize that providing effective safeguards is challenging, and many papers do not require this, but we encourage authors to take this into account and make a best faith effort.
+%     \end{itemize}
+
+% \item {\bf Licenses for existing assets}
+%     \item[] Question: Are the creators or original owners of assets (e.g., code, data, models), used in the paper, properly credited and are the license and terms of use explicitly mentioned and properly respected?
+%     \item[] Answer: \answerTODO{} % Replace by \answerYes{}, \answerNo{}, or \answerNA{}.
+%     \item[] Justification: \justificationTODO{}
+%     \item[] Guidelines:
+%     \begin{itemize}
+%         \item The answer NA means that the paper does not use existing assets.
+%         \item The authors should cite the original paper that produced the code package or dataset.
+%         \item The authors should state which version of the asset is used and, if possible, include a URL.
+%         \item The name of the license (e.g., CC-BY 4.0) should be included for each asset.
+%         \item For scraped data from a particular source (e.g., website), the copyright and terms of service of that source should be provided.
+%         \item If assets are released, the license, copyright information, and terms of use in the package should be provided. For popular datasets, \url{paperswithcode.com/datasets} has curated licenses for some datasets. Their licensing guide can help determine the license of a dataset.
+%         \item For existing datasets that are re-packaged, both the original license and the license of the derived asset (if it has changed) should be provided.
+%         \item If this information is not available online, the authors are encouraged to reach out to the asset's creators.
+%     \end{itemize}
+
+% \item {\bf New Assets}
+%     \item[] Question: Are new assets introduced in the paper well documented and is the documentation provided alongside the assets?
+%     \item[] Answer: \answerTODO{} % Replace by \answerYes{}, \answerNo{}, or \answerNA{}.
+%     \item[] Justification: \justificationTODO{}
+%     \item[] Guidelines:
+%     \begin{itemize}
+%         \item The answer NA means that the paper does not release new assets.
+%         \item Researchers should communicate the details of the dataset/code/model as part of their submissions via structured templates. This includes details about training, license, limitations, etc. 
+%         \item The paper should discuss whether and how consent was obtained from people whose asset is used.
+%         \item At submission time, remember to anonymize your assets (if applicable). You can either create an anonymized URL or include an anonymized zip file.
+%     \end{itemize}
+
+% \item {\bf Crowdsourcing and Research with Human Subjects}
+%     \item[] Question: For crowdsourcing experiments and research with human subjects, does the paper include the full text of instructions given to participants and screenshots, if applicable, as well as details about compensation (if any)? 
+%     \item[] Answer: \answerTODO{} % Replace by \answerYes{}, \answerNo{}, or \answerNA{}.
+%     \item[] Justification: \justificationTODO{}
+%     \item[] Guidelines:
+%     \begin{itemize}
+%         \item The answer NA means that the paper does not involve crowdsourcing nor research with human subjects.
+%         \item Including this information in the supplemental material is fine, but if the main contribution of the paper involves human subjects, then as much detail as possible should be included in the main paper. 
+%         \item According to the NeurIPS Code of Ethics, workers involved in data collection, curation, or other labor should be paid at least the minimum wage in the country of the data collector. 
+%     \end{itemize}
+
+% \item {\bf Institutional Review Board (IRB) Approvals or Equivalent for Research with Human Subjects}
+%     \item[] Question: Does the paper describe potential risks incurred by study participants, whether such risks were disclosed to the subjects, and whether Institutional Review Board (IRB) approvals (or an equivalent approval/review based on the requirements of your country or institution) were obtained?
+%     \item[] Answer: \answerTODO{} % Replace by \answerYes{}, \answerNo{}, or \answerNA{}.
+%     \item[] Justification: \justificationTODO{}
+%     \item[] Guidelines:
+%     \begin{itemize}
+%         \item The answer NA means that the paper does not involve crowdsourcing nor research with human subjects.
+%         \item Depending on the country in which research is conducted, IRB approval (or equivalent) may be required for any human subjects research. If you obtained IRB approval, you should clearly state this in the paper. 
+%         \item We recognize that the procedures for this may vary significantly between institutions and locations, and we expect authors to adhere to the NeurIPS Code of Ethics and the guidelines for their institution. 
+%         \item For initial submissions, do not include any information that would break anonymity (if applicable), such as the institution conducting the review.
+%     \end{itemize}
+
+% \end{enumerate}
+
+
+\end{document}

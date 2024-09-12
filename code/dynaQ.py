@@ -1,0 +1,231 @@
+import numpy as np
+import random
+
+class DynaQAgent:
+    def __init__(self, n_states, n_actions, epsilon=0.1, alpha=0.1, gamma=0.95, planning_steps=5):
+        self.n_states = n_states
+        self.n_actions = n_actions
+        self.epsilon = epsilon
+        self.alpha = alpha
+        self.gamma = gamma
+        self.planning_steps = planning_steps
+        
+        # Initialize Q-table and model
+        self.q_table = np.zeros((n_states, n_actions))
+        self.model = {}
+        
+    def choose_action(self, state):
+        if random.uniform(0, 1) < self.epsilon:
+            return np.random.choice(self.n_actions)
+        else:
+            return np.argmax(self.q_table[state])
+        
+    def update(self, state, action, reward, next_state):
+        best_next_action = np.argmax(self.q_table[next_state])
+        td_target = reward + self.gamma * self.q_table[next_state][best_next_action]
+        td_error = td_target - self.q_table[state][action]
+        self.q_table[state][action] += self.alpha * td_error
+        
+        # Store the transition in the model
+        self.model[(state, action)] = (reward, next_state)
+        
+        # Planning phase
+        for _ in range(self.planning_steps):
+            s, a = random.choice(list(self.model.keys()))
+            r, s_next = self.model[(s, a)]
+            best_next_a = np.argmax(self.q_table[s_next])
+            td_target = r + self.gamma * self.q_table[s_next][best_next_a]
+            td_error = td_target - self.q_table[s][a]
+            self.q_table[s][a] += self.alpha * td_error
+
+
+# how to model the learner that peforms an action and does not get a reward any time that the action is performed (while assumsing that  the policy of the q-learner is not optimal )
+class SimulatedHumanLearner:
+    def __init__(self, n_states, error_probability, smart_action_sequence_learner):
+        self.state = 0
+        self.n_states = n_states
+        self.error_probability = error_probability
+        self.smart_action_sequence_learner = smart_action_sequence_learner   
+        
+    def perform_action(self, action):
+        # The learner may progress or regress depending on action and error probability
+        if random.uniform(0, 1) < self.error_probability:
+            self.state = max(0, self.state)
+            return 0  # Error made
+        elif (action == self.smart_action_sequence_learner[self.state]):
+            self.state = min(self.n_states - 1, self.state + 1)
+            return 1  # No error
+        else: 
+            return 0 
+
+    def get_state(self):
+        return self.state
+
+class SimulatedTeacher:
+    def __init__(self, smart_action_sequence):
+        self.smart_action_sequence = smart_action_sequence
+    
+    def should_intervene(self, avg_reward):
+        # Inverse the average reward to determine the probability of intervention
+        teacher_peak = 1 - avg_reward
+        return np.random.binomial(1, teacher_peak) == 1
+
+    def guide(self, human_learner):
+        current_state = human_learner.get_state()
+        if current_state < len(self.smart_action_sequence):
+            action = self.smart_action_sequence[current_state]
+            # Teacher ensures the learner progresses according to the smart action sequence
+            human_learner.state = min(human_learner.n_states - 1, human_learner.state + 1)
+            reward = 1
+            return (current_state, action, reward, human_learner.get_state())  # No error, as the teacher is guiding correctly
+        else:
+            print ("weird case that should not take place")
+            #return 0  # No guidance needed if beyond the smart action sequence
+
+def simulate_learning(agent, human_learner, teacher, teacherF, episodes=100):
+    
+    rewards = []
+    
+    steps =0
+    while (human_learner.get_state() < 14)  or (steps < episodes):
+    #for episode in range(episodes):
+               
+        
+        # Calculate the average reward (error rate) over the last 10 episodes
+        avg_reward = np.mean(rewards[-10:]) if len(rewards) >= 10 else 1  # Use 1 if insufficient history
+        
+        # Decide whether the teacher should intervene based on a Bernoulli process
+        if teacher.should_intervene(avg_reward) and teacherF==1:
+            (state,  action, reward, next_state) = teacher.guide(human_learner)  # Teacher intervenes
+        else:
+            state = human_learner.get_state()
+            action = agent.choose_action(state)
+            reward = human_learner.perform_action(action)  # Learner performs action based on Q-learner's decision
+            next_state = human_learner.get_state()       
+        agent.update(state, action, reward, next_state)
+        rewards.append(reward)
+        #print (teacher_flag, learner_flag, " :: ", state, action, reward, next_state)
+        steps +=1
+    
+    avg_reward = np.mean(rewards)   
+    return avg_reward
+
+#############
+# episodes == number of evaluations
+def evaluate_policy(agent, human_learner, teacher, episodes=10):
+    evaluation_rewards = []
+    
+    # Turn off exploration by setting epsilon to 0
+    agent.epsilon = 0.2
+
+    # Teacher does not intervene during evaluation
+    teacher_intervention = False
+
+    for episode in range(episodes):
+        episode_rewards = 0
+        human_learner.state = 0  # Reset the learner to the initial state
+        steps = 0 
+        while human_learner.get_state() < human_learner.n_states - 1:
+            state = human_learner.get_state()
+            action = agent.choose_action(state)  # Choose the best action based on the trained Q-table
+            
+            reward = human_learner.perform_action(action)
+            next_state = human_learner.get_state()
+            episode_rewards += reward
+            #print (state, action, reward, next_state)
+            steps +=1           
+            # Break the loop if the learner reaches the final state
+            if next_state == human_learner.n_states - 1:
+                break
+
+        evaluation_rewards.append(episode_rewards/steps)
+        #print(f"Episode {episode+1}: Total Reward = {episode_rewards/steps}")
+    
+    avg_reward = np.mean(evaluation_rewards)
+    #print(f"Average Reward over {episodes} evaluation episodes: {avg_reward}")
+    
+    return avg_reward
+
+# simulation and eval
+################
+
+# Simulation parameters
+n_states = 15  # Number of states (learner's capabilities)
+n_actions = 3  # Number of possible exercise units
+epsilon = 0.1  # Exploration factor
+alpha = 0.1  # Learning rate
+gamma = 0.95  # Discount factor
+planning_steps = 5 # Number of planning steps for Dyna-Q (10 steps, 0.3 exploration during test)
+error_probability = 0.4 # Probability that the learner makes an error
+
+# Define the smart action sequence known to the teacher
+smart_action_sequence = [0, 1, 2] * (n_states // 3)
+smart_action_sequence_learner = [1, 1, 2] * (n_states // 3)
+# Instantiate the learner, agent, and teacher
+
+training_iterations=200
+
+def eval(training_iterations):
+    # Simulate the learning process
+    x= []
+    y =[]
+    agent = DynaQAgent(n_states, n_actions, epsilon, alpha, gamma, planning_steps)
+    teacher = SimulatedTeacher(smart_action_sequence)
+
+    
+    for i in range (training_iterations):
+        human_learner = SimulatedHumanLearner(n_states, error_probability, smart_action_sequence_learner)
+        #print ("initial state", human_learner.get_state()) 
+        av_reward_meta = simulate_learning(agent, human_learner, teacher, 1, episodes=30)
+        x.append(av_reward_meta)
+        av_reward_q_only = simulate_learning(agent, human_learner, teacher, 0, episodes=30)
+        #av_reward_q_after_training = evaluate_policy(agent, human_learner, teacher, episodes=1)
+        y.append(av_reward_q_only)
+    return x, y
+
+
+def run(average_iterations):
+    x = []
+    y =[]
+
+    for i in range(average_iterations): 
+        meta,q = eval(training_iterations)
+        #print (x,y)
+        x.append(meta)
+        y.append(q)
+    
+    stacked_x = np.stack(x)
+    stacked_y = np.stack(y)
+
+    meta_m, meta_v = mean_var(stacked_x)
+    q_m, q_v = mean_var(stacked_y)
+    return  meta_m, meta_v, q_m, q_v
+
+def mean_var(stacked):
+    mean = np.mean(stacked, axis=0)
+    variance = np.var(stacked, axis=0)
+    return mean, variance
+
+
+
+average_iterations =30
+mean_x, variance_x, mean_y, variance_y = run(average_iterations)
+
+
+
+
+
+import matplotlib.pyplot as plt
+#plt.scatter(x, y)
+#plt.show()
+plt.errorbar(np.arange(training_iterations), mean_x, yerr=variance_x, fmt='o-', capsize=5, label='Mean with Variance (Meta Unit:Teacher + Q-learner)', color="grey")
+plt.errorbar(np.arange(training_iterations), mean_y, yerr=variance_y, fmt='o-', capsize=5, label='Mean with Variance (Q-learner)', color="blue")
+#plt.plot(x, label="Training (with teacher)", color="grey")
+#plt.plot(y, label="Evaluation (without teacher)", color="blue")
+#plt.xlabel("Number of training episodes (agent)")
+#plt.ylabel("Improvement rate")
+plt.title ("Meta unit training (grey) and Q-learner evaluation (blue)")
+plt.legend()
+plt.show()
+#print("Learning complete. Final state of the learner:", human_learner.get_state())
+#print("Rewards:", rewards)
