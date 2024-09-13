@@ -87,7 +87,7 @@ def simulate_learning(agent, human_learner, teacher, teacherF, episodes=100):
     rewards = []
     
     steps =0
-    while (human_learner.get_state() < 14)  or (steps < episodes):
+    while (human_learner.get_state() < human_learner.n_states-1)  or (steps < episodes):
     #for episode in range(episodes):
                
         
@@ -97,6 +97,18 @@ def simulate_learning(agent, human_learner, teacher, teacherF, episodes=100):
         # Decide whether the teacher should intervene based on a Bernoulli process
         if teacher.should_intervene(avg_reward) and teacherF==1:
             (state,  action, reward, next_state) = teacher.guide(human_learner)  # Teacher intervenes
+        elif (teacherF==0.5): 
+            threshold = random.uniform(0,1)
+            
+            if threshold < 0.2:
+                
+                (state,  action, reward, next_state) = teacher.guide(human_learner) 
+            else: 
+                state = human_learner.get_state()
+                action = agent.choose_action(state)
+                reward = human_learner.perform_action(action)  # Learner performs action based on Q-learner's decision
+                next_state = human_learner.get_state()       
+            
         else:
             state = human_learner.get_state()
             action = agent.choose_action(state)
@@ -108,6 +120,7 @@ def simulate_learning(agent, human_learner, teacher, teacherF, episodes=100):
         steps +=1
     
     avg_reward = np.mean(rewards)   
+    #print (human_learner.get_state())
     return avg_reward
 
 #############
@@ -150,20 +163,21 @@ def evaluate_policy(agent, human_learner, teacher, episodes=10):
 ################
 
 # Simulation parameters
-n_states = 15  # Number of states (learner's capabilities)
-n_actions = 3  # Number of possible exercise units
+n_states = 24  # Number of states (learner's capabilities)
+n_actions = 4  # Number of possible exercise units
 epsilon = 0.1  # Exploration factor
 alpha = 0.1  # Learning rate
 gamma = 0.95  # Discount factor
 planning_steps = 5 # Number of planning steps for Dyna-Q (10 steps, 0.3 exploration during test)
-error_probability = 0.4 # Probability that the learner makes an error
+error_probability = 0.6 # Probability that the learner makes an error
 
 # Define the smart action sequence known to the teacher
-smart_action_sequence = [0, 1, 2] * (n_states // 3)
-smart_action_sequence_learner = [1, 1, 2] * (n_states // 3)
+smart_action_sequence = [0, 1, 2, 3] * (n_states // n_actions)
+smart_action_sequence_learner = [1, 1, 2, 3] * (n_states // n_actions)
+#print (len(smart_action_sequence))
 # Instantiate the learner, agent, and teacher
 
-training_iterations=200
+training_iterations=100
 
 def eval(training_iterations):
     # Simulate the learning process
@@ -178,7 +192,7 @@ def eval(training_iterations):
         #print ("initial state", human_learner.get_state()) 
         av_reward_meta = simulate_learning(agent, human_learner, teacher, 1, episodes=30)
         x.append(av_reward_meta)
-        av_reward_q_only = simulate_learning(agent, human_learner, teacher, 0, episodes=30)
+        av_reward_q_only = simulate_learning(agent, human_learner, teacher, 0.5, episodes=30)
         #av_reward_q_after_training = evaluate_policy(agent, human_learner, teacher, episodes=1)
         y.append(av_reward_q_only)
     return x, y
@@ -208,24 +222,26 @@ def mean_var(stacked):
 
 
 
-average_iterations =30
+average_iterations =40
 mean_x, variance_x, mean_y, variance_y = run(average_iterations)
 
 
 
-
-
 import matplotlib.pyplot as plt
+slice = 5
 #plt.scatter(x, y)
 #plt.show()
-plt.errorbar(np.arange(training_iterations), mean_x, yerr=variance_x, fmt='o-', capsize=5, label='Mean with Variance (Meta Unit:Teacher + Q-learner)', color="grey")
-plt.errorbar(np.arange(training_iterations), mean_y, yerr=variance_y, fmt='o-', capsize=5, label='Mean with Variance (Q-learner)', color="blue")
+# learner_error = 0.4
+plt.errorbar(np.arange(training_iterations)[::slice], mean_x[::slice], yerr=variance_x[::slice], fmt='o-', capsize=5, label='Mu/Sigma (Meta Unit Training:Teacher(Bernoulli) + Q-learner)', color="grey")
+plt.errorbar(np.arange(training_iterations)[::slice], mean_y[::slice], yerr=variance_y[::slice], fmt='o-', capsize=5, label='Mu/Sigma (Meta Unit Training: Teacher 20% + Q-learner)', color="blue")
+#plt.errorbar(np.arange(training_iterations)[::slice], mean_y[::slice], yerr=variance_y[::slice], fmt='o-', capsize=5, label='Mu/Sigma (Q-learner Training)', color="blue")
 #plt.plot(x, label="Training (with teacher)", color="grey")
 #plt.plot(y, label="Evaluation (without teacher)", color="blue")
 #plt.xlabel("Number of training episodes (agent)")
 #plt.ylabel("Improvement rate")
-plt.title ("Meta unit training (grey) and Q-learner evaluation (blue)")
+#plt.title ("Meta unit training (grey) and Q-learner evaluation (blue)")
+plt.title("Meta Unit training (Bernoulli) (grey), Meta Unit training with 20% teacher interventions(blue)")
 plt.legend()
 plt.show()
-#print("Learning complete. Final state of the learner:", human_learner.get_state())
-#print("Rewards:", rewards)
+
+
