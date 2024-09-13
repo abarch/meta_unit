@@ -169,7 +169,7 @@ epsilon = 0.1  # Exploration factor
 alpha = 0.1  # Learning rate
 gamma = 0.95  # Discount factor
 planning_steps = 5 # Number of planning steps for Dyna-Q (10 steps, 0.3 exploration during test)
-error_probability = 0.6 # Probability that the learner makes an error
+error_probability = 0.5 # Probability that the learner makes an error
 
 # Define the smart action sequence known to the teacher
 smart_action_sequence = [0, 1, 2, 3] * (n_states // n_actions)
@@ -183,16 +183,18 @@ def eval(training_iterations):
     # Simulate the learning process
     x= []
     y =[]
-    agent = DynaQAgent(n_states, n_actions, epsilon, alpha, gamma, planning_steps)
+    agent_1 = DynaQAgent(n_states, n_actions, epsilon, alpha, gamma, planning_steps)
+    agent_2 = DynaQAgent(n_states, n_actions, epsilon, alpha, gamma, planning_steps)
     teacher = SimulatedTeacher(smart_action_sequence)
 
     
     for i in range (training_iterations):
-        human_learner = SimulatedHumanLearner(n_states, error_probability, smart_action_sequence_learner)
+        human_learner_1 = SimulatedHumanLearner(n_states, error_probability, smart_action_sequence_learner)
         #print ("initial state", human_learner.get_state()) 
-        av_reward_meta = simulate_learning(agent, human_learner, teacher, 1, episodes=30)
+        av_reward_meta = simulate_learning(agent_1, human_learner_1, teacher, 1, episodes=30)
         x.append(av_reward_meta)
-        av_reward_q_only = simulate_learning(agent, human_learner, teacher, 0.5, episodes=30)
+        human_learner_2 = SimulatedHumanLearner(n_states, error_probability, smart_action_sequence_learner)
+        av_reward_q_only = simulate_learning(agent_2, human_learner_2, teacher, 0, episodes=30)
         #av_reward_q_after_training = evaluate_policy(agent, human_learner, teacher, episodes=1)
         y.append(av_reward_q_only)
     return x, y
@@ -233,15 +235,13 @@ slice = 5
 #plt.show()
 # learner_error = 0.4
 plt.errorbar(np.arange(training_iterations)[::slice], mean_x[::slice], yerr=variance_x[::slice], fmt='o-', capsize=5, label='Mu/Sigma (Meta Unit Training:Teacher(Bernoulli) + Q-learner)', color="grey")
-plt.errorbar(np.arange(training_iterations)[::slice], mean_y[::slice], yerr=variance_y[::slice], fmt='o-', capsize=5, label='Mu/Sigma (Meta Unit Training: Teacher 20% + Q-learner)', color="blue")
-#plt.errorbar(np.arange(training_iterations)[::slice], mean_y[::slice], yerr=variance_y[::slice], fmt='o-', capsize=5, label='Mu/Sigma (Q-learner Training)', color="blue")
+#plt.errorbar(np.arange(training_iterations)[::slice], mean_y[::slice], yerr=variance_y[::slice], fmt='o-', capsize=5, label='Mu/Sigma (Meta Unit Training: Teacher 20% + Q-learner)', color="blue")
+plt.errorbar(np.arange(training_iterations)[::slice], mean_y[::slice], yerr=variance_y[::slice], fmt='o-', capsize=5, label='Mu/Sigma (Q-learner Training)', color="blue")
 #plt.plot(x, label="Training (with teacher)", color="grey")
 #plt.plot(y, label="Evaluation (without teacher)", color="blue")
 #plt.xlabel("Number of training episodes (agent)")
 #plt.ylabel("Improvement rate")
-#plt.title ("Meta unit training (grey) and Q-learner evaluation (blue)")
-plt.title("Meta Unit training (Bernoulli) (grey), Meta Unit training with 20% teacher interventions(blue)")
+plt.title ("Meta unit training (grey) and Q-learner evaluation (blue)")
+#plt.title("Meta Unit training (Bernoulli) (grey), Meta Unit training with 20% teacher interventions(blue)")
 plt.legend()
 plt.show()
-
-
