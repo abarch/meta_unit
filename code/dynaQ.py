@@ -1,16 +1,17 @@
-import numpy as np
-import matplotlib.pyplot as plt
+"""Meta unit training with teacher intervention and Q-learner evaluation."""
+
 import random
+
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 class DynaQAgent:
-    """
-    A Dyna-Q agent for reinforcement learning that combines Q-learning
+    """A Dyna-Q agent for reinforcement learning that combines Q-learning
     with planning.
 
     Attributes:
     ----------
-
     n_states (int): Number of states in the environment.
     n_actions (int): Number of possible actions in the environment.
     epsilon (float): Probability of choosing a random action (exploration).
@@ -30,8 +31,7 @@ class DynaQAgent:
         gamma: float = 0.95,
         planning_steps: int = 5,
     ) -> None:
-        """
-        Initialize the DynaQAgent with the given parameters.
+        """Initialize the DynaQAgent with the given parameters.
 
         Args:
         n_states (int): Number of states in the environment.
@@ -73,8 +73,7 @@ class DynaQAgent:
         return np.argmax(self.q_table[state])
 
     def update(self, state: int, action: int, reward: float, next_state: int) -> None:
-        """
-        Update the Q-table and model with the given transition and perform
+        """Update the Q-table and model with the given transition and perform
         planning steps.
 
         Args:
@@ -104,9 +103,13 @@ class DynaQAgent:
             self.q_table[s][a] += self.alpha * td_error
 
 
-# Model the learner that peforms an action and does not get a reward any time that the action is performed (while assumsing that the policy of the q-learner is not optimal.
+# Model the learner that peforms an action and does not get a reward
+# any time that the action is performed
+# (while assumsing that the policy of the q-learner is not optimal.
 class SimulatedHumanLearner:
-    """Simulated Human Learner."""
+    """SimulatedHumanLearner is a class that simulates a human learner's
+    behavior in a learning environment.
+    """
 
     def __init__(
         self,
@@ -125,23 +128,48 @@ class SimulatedHumanLearner:
         Returns:
         None
         """
-        self.state = 0
+        self._state = 0
         self.n_states = n_states
         self.error_probability = error_probability
         self.smart_action_sequence_learner = smart_action_sequence_learner
 
     def perform_action(self, action):
-        # The learner may progress or regress depending on action and error probability
+        """Perform an action and update the learner's state.
+
+        The learner may progress or regress depending on the action and
+        error probability.
+
+        Args:
+            action (int): The action to be performed.
+
+        Returns:
+            int: 1 if the action was successful, 0 if an error occurred.
+        """
         if random.uniform(0, 1) < self.error_probability:
-            self.state = max(0, self.state)
+            self._state = max(0, self._state)
             return 0  # Error made
-        elif action == self.smart_action_sequence_learner[self.state]:
-            self.state = min(self.n_states - 1, self.state + 1)
+        elif action == self.smart_action_sequence_learner[self._state]:
+            self._state = min(self.n_states - 1, self._state + 1)
             return 1  # No error
         return 0
 
-    def get_state(self):
-        return self.state
+    @property
+    def state(self):
+        """Gets the current state.
+
+        Returns:
+            The current state.
+        """
+        return self._state
+
+    @state.setter
+    def state(self, new_state: int):
+        """Sets the current state.
+
+        Args:
+            new_state (int): The new state to be set.
+        """
+        self._state = new_state
 
 
 class SimulatedTeacher:
@@ -154,7 +182,7 @@ class SimulatedTeacher:
         return np.random.binomial(1, teacher_peak) == 1
 
     def guide(self, human_learner):
-        current_state = human_learner.get_state()
+        current_state = human_learner.state
         if current_state < len(self.smart_action_sequence):
             action = self.smart_action_sequence[current_state]
             # Teacher ensures the learner progresses according to the smart action sequence
@@ -166,7 +194,7 @@ class SimulatedTeacher:
                 current_state,
                 action,
                 reward,
-                human_learner.get_state(),
+                human_learner.state,
             )  # No error, as the teacher is guiding correctly
         else:
             print("weird case that should not take place")
@@ -177,9 +205,7 @@ def simulate_learning(agent, human_learner, teacher, teacherF, episodes=100):
     rewards = []
 
     steps = 0
-    while (human_learner.get_state() < human_learner.n_states - 1) or (
-        steps < episodes
-    ):
+    while (human_learner.state < human_learner.n_states - 1) or (steps < episodes):
         # for episode in range(episodes):
 
         # Calculate the average reward (error rate) over the last 10 episodes
@@ -198,27 +224,27 @@ def simulate_learning(agent, human_learner, teacher, teacherF, episodes=100):
             if threshold < 0.2:
                 (state, action, reward, next_state) = teacher.guide(human_learner)
             else:
-                state = human_learner.get_state()
+                state = human_learner.state
                 action = agent.choose_action(state)
                 reward = human_learner.perform_action(
                     action
                 )  # Learner performs action based on Q-learner's decision
-                next_state = human_learner.get_state()
+                next_state = human_learner.state
 
         else:
-            state = human_learner.get_state()
+            state = human_learner.state
             action = agent.choose_action(state)
             reward = human_learner.perform_action(
                 action
             )  # Learner performs action based on Q-learner's decision
-            next_state = human_learner.get_state()
+            next_state = human_learner.state
         agent.update(state, action, reward, next_state)
         rewards.append(reward)
         # print (teacher_flag, learner_flag, " :: ", state, action, reward, next_state)
         steps += 1
 
     avg_reward = np.mean(rewards)
-    # print (human_learner.get_state())
+    # print (human_learner.state)
     return avg_reward
 
 
@@ -234,14 +260,14 @@ def evaluate_policy(agent, human_learner, episodes=10):
         episode_rewards = 0
         human_learner.state = 0  # Reset the learner to the initial state
         steps = 0
-        while human_learner.get_state() < human_learner.n_states - 1:
-            state = human_learner.get_state()
+        while human_learner.state < human_learner.n_states - 1:
+            state = human_learner.state
             action = agent.choose_action(
                 state
             )  # Choose the best action based on the trained Q-table
 
             reward = human_learner.perform_action(action)
-            next_state = human_learner.get_state()
+            next_state = human_learner.state
             episode_rewards += reward
             # print (state, action, reward, next_state)
             steps += 1
@@ -293,7 +319,7 @@ def eval(training_iterations):
         human_learner_1 = SimulatedHumanLearner(
             n_states, error_probability, smart_action_sequence_learner
         )
-        # print ("initial state", human_learner.get_state())
+        # print ("initial state", human_learner.state)
         av_reward_meta = simulate_learning(
             agent_1, human_learner_1, teacher, 1, episodes=30
         )
