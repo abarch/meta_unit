@@ -2,12 +2,15 @@
 
 import random
 
+from typing import Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 
 
 class DynaQAgent:
-    """A Dyna-Q agent for reinforcement learning that combines Q-learning
+    """DynaQAgent.
+
+    A Dyna-Q agent for reinforcement learning that combines Q-learning
     with planning.
 
     Attributes:
@@ -73,7 +76,9 @@ class DynaQAgent:
         return np.argmax(self.q_table[state])
 
     def update(self, state: int, action: int, reward: float, next_state: int) -> None:
-        """Update the Q-table and model with the given transition and perform
+        """Update Model.
+
+        Update the Q-table and model with the given transition and perform
         planning steps.
 
         Args:
@@ -107,7 +112,9 @@ class DynaQAgent:
 # any time that the action is performed
 # (while assumsing that the policy of the q-learner is not optimal.
 class SimulatedHumanLearner:
-    """SimulatedHumanLearner is a class that simulates a human learner's
+    """Simulate a human learner.
+
+    SimulatedHumanLearner is a class that simulates a human learner's
     behavior in a learning environment.
     """
 
@@ -133,7 +140,7 @@ class SimulatedHumanLearner:
         self.error_probability = error_probability
         self.smart_action_sequence_learner = smart_action_sequence_learner
 
-    def perform_action(self, action):
+    def perform_action(self, action: int) -> int:
         """Perform an action and update the learner's state.
 
         The learner may progress or regress depending on the action and
@@ -154,7 +161,7 @@ class SimulatedHumanLearner:
         return 0
 
     @property
-    def state(self):
+    def state(self) -> int:
         """Gets the current state.
 
         Returns:
@@ -163,7 +170,7 @@ class SimulatedHumanLearner:
         return self._state
 
     @state.setter
-    def state(self, new_state: int):
+    def state(self, new_state: int) -> None:
         """Sets the current state.
 
         Args:
@@ -173,19 +180,46 @@ class SimulatedHumanLearner:
 
 
 class SimulatedTeacher:
-    def __init__(self, smart_action_sequence):
+    def __init__(self, smart_action_sequence: list[int]):
+        """Initializes the class with a smart action sequence.
+
+        Args:
+            smart_action_sequence (list): A sequence of smart actions
+                to be used to guide the human learner.
+        """
         self.smart_action_sequence = smart_action_sequence
 
-    def should_intervene(self, avg_reward):
+    def should_intervene(self, avg_reward: float) -> bool:
+        """Intervention function.
+
+        Determines if an intervention should occur based on average reward.
+
+        Args:
+            avg_reward (float): The average reward value.
+
+        Returns:
+            bool: True if intervention should occur, False otherwise.
+        """
         # Inverse the average reward to determine the probability of intervention
         teacher_peak = 1 - avg_reward
         return np.random.binomial(1, teacher_peak) == 1
 
-    def guide(self, human_learner):
+    def guide(self, human_learner: SimulatedHumanLearner) -> Tuple[int, int, int, int]:
+        """Guides the human learner based on the smart action sequence.
+
+        Args:
+            human_learner (object): The human learner object which contains
+                the current state and number of states.
+
+        Returns:
+            tuple: A tuple containing the current state, action, reward,
+                and new state of the human learner.
+        """
         current_state = human_learner.state
         if current_state < len(self.smart_action_sequence):
             action = self.smart_action_sequence[current_state]
-            # Teacher ensures the learner progresses according to the smart action sequence
+            # Teacher ensures the learner progresses according to
+            # the smart action sequence
             human_learner.state = min(
                 human_learner.n_states - 1, human_learner.state + 1
             )
