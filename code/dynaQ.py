@@ -180,6 +180,12 @@ class SimulatedHumanLearner:
 
 
 class SimulatedTeacher:
+    """A class to simulate a teacher guiding a human learner.
+
+    This class provides methods to guide the human learner based on a
+    predefined smart action sequence.
+    """
+
     def __init__(self, smart_action_sequence: list[int]):
         """Initializes the class with a smart action sequence.
 
@@ -235,24 +241,41 @@ class SimulatedTeacher:
             # return 0  # No guidance needed if beyond the smart action sequence
 
 
-def simulate_learning(agent, human_learner, teacher, teacherF, episodes=100):
+def simulate_learning(
+    agent: DynaQAgent,
+    human_learner: SimulatedHumanLearner,
+    teacher: SimulatedTeacher,
+    teacher_f: float,
+    episodes: int = 100,
+) -> float:
+    """Simulates the learning process for a given number of episodes.
+
+    Args:
+        agent (DynaQAgent): The agent that interacts with the environment.
+        human_learner (SimulatedHumanLearner): The human learner being guided.
+        teacher (SimulatedTeacher): The primary teacher guiding the learner.
+        teacher_f (float): The intervention of the teacher.
+        episodes (int, optional): The number of episodes to simulate.
+            Defaults to 100.
+
+    Returns:
+        float: The average reward obtained during the simulation.
+    """
     rewards = []
 
     steps = 0
     while (human_learner.state < human_learner.n_states - 1) or (steps < episodes):
-        # for episode in range(episodes):
-
         # Calculate the average reward (error rate) over the last 10 episodes
         avg_reward = (
             np.mean(rewards[-10:]) if len(rewards) >= 10 else 1
         )  # Use 1 if insufficient history
 
         # Decide whether the teacher should intervene based on a Bernoulli process
-        if teacher.should_intervene(avg_reward) and teacherF == 1:
+        if teacher.should_intervene(avg_reward) and teacher_f == 1:
             (state, action, reward, next_state) = teacher.guide(
                 human_learner
             )  # Teacher intervenes
-        elif teacherF == 0.5:
+        elif teacher_f == 0.5:
             threshold = random.uniform(0, 1)
 
             if threshold < 0.2:
@@ -284,13 +307,26 @@ def simulate_learning(agent, human_learner, teacher, teacherF, episodes=100):
 
 #############
 # episodes == number of evaluations
-def evaluate_policy(agent, human_learner, episodes=10):
+def evaluate_policy(
+    agent: DynaQAgent, human_learner: SimulatedHumanLearner, episodes: int = 10
+) -> float:
+    """Evaluates the policy of the agent over a number of episodes.
+
+    Args:
+        agent (DynaQAgent): The agent whose policy is being evaluated.
+        human_learner (SimulatedHumanLearner): The human learner being guided.
+        episodes (int, optional): The number of episodes to evaluate.
+            Defaults to 10.
+
+    Returns:
+        float: The average reward obtained during the evaluation.
+    """
     evaluation_rewards = []
 
     # Turn off exploration by setting epsilon to 0
     agent.epsilon = 0.2
 
-    for episode in range(episodes):
+    for _ in range(episodes):
         episode_rewards = 0
         human_learner.state = 0  # Reset the learner to the initial state
         steps = 0
@@ -341,7 +377,16 @@ smart_action_sequence_learner = [1, 1, 2, 3] * (n_states // n_actions)
 training_iterations = 100
 
 
-def eval(training_iterations):
+def eval(training_iterations: int) -> Tuple[list[float], list[float]]:
+    """Evaluates the learning process over a number of training iterations.
+
+    Args:
+        training_iterations (int): The number of training iterations to run.
+
+    Returns:
+        Tuple[list[float], list[float]]: Two lists containing the average
+            rewards for the meta-learning agent and the Q-learning agent.
+    """
     # Simulate the learning process
     x = []
     y = []
