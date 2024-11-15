@@ -366,7 +366,7 @@ gamma = 0.95  # Discount factor
 planning_steps = (
     5  # Number of planning steps for Dyna-Q (10 steps, 0.3 exploration during test)
 )
-error_probability = 0.5  # Probability that the learner makes an error
+error_probability = 0.65  # Probability that the learner makes an error
 
 # Define the smart action sequence known to the teacher
 smart_action_sequence = [0, 1, 2, 3] * (n_states // n_actions)
@@ -390,8 +390,10 @@ def eval(training_iterations: int) -> Tuple[list[float], list[float]]:
     # Simulate the learning process
     x = []
     y = []
+    z = []
     agent_1 = DynaQAgent(n_states, n_actions, epsilon, alpha, gamma, planning_steps)
     agent_2 = DynaQAgent(n_states, n_actions, epsilon, alpha, gamma, planning_steps)
+    agent_3 = DynaQAgent(n_states, n_actions, epsilon, alpha, gamma, planning_steps)
     teacher = SimulatedTeacher(smart_action_sequence)
 
     for _ in range(training_iterations):
@@ -409,27 +411,38 @@ def eval(training_iterations: int) -> Tuple[list[float], list[float]]:
         av_reward_q_only = simulate_learning(
             agent_2, human_learner_2, teacher, 0, episodes=30
         )
-        # av_reward_q_after_training = evaluate_policy(agent, human_learner, teacher, episodes=1)
         y.append(av_reward_q_only)
-    return x, y
+        human_learner_3 = SimulatedHumanLearner(
+            n_states, error_probability, smart_action_sequence_learner
+        )
+        av_reward_teacher = simulate_learning(
+            agent_3, human_learner_3, teacher, 0.5, episodes=30
+        )
+        # av_reward_q_after_training = evaluate_policy(agent, human_learner, teacher, episodes=1)
+        z.append(av_reward_teacher)
+    return x, y, z
 
 
 def run(average_iterations):
     x = []
     y = []
+    z = []
 
     for _ in range(average_iterations):
-        meta, q = eval(training_iterations)
+        meta, q, teacher = eval(training_iterations)
         # print (x,y)
         x.append(meta)
         y.append(q)
+        z.append(teacher)
 
     stacked_x = np.stack(x)
     stacked_y = np.stack(y)
+    stacked_z = np.stack(z)
 
     meta_m, meta_v = mean_var(stacked_x)
     q_m, q_v = mean_var(stacked_y)
-    return meta_m, meta_v, q_m, q_v
+    teacher_m, teacher_v = mean_var(stacked_z)
+    return meta_m, meta_v, q_m, q_v, teacher_m, teacher_v
 
 
 def mean_var(stacked):
@@ -439,7 +452,7 @@ def mean_var(stacked):
 
 
 average_iterations = 40
-mean_x, variance_x, mean_y, variance_y = run(average_iterations)
+mean_x, variance_x, mean_y, variance_y, mean_z, variance_z = run(average_iterations)
 
 
 slice = 5
@@ -451,25 +464,37 @@ plt.errorbar(
     mean_x[::slice],
     yerr=variance_x[::slice],
     fmt="o-",
+    linewidth=1.5,
     capsize=5,
-    label="Mu/Sigma (Meta Unit Training:Teacher(Bernoulli) + Q-learner)",
+    label="Meta Unit: Scaffolding Agent + Controller",
     color="grey",
 )
-# plt.errorbar(np.arange(training_iterations)[::slice], mean_y[::slice], yerr=variance_y[::slice], fmt='o-', capsize=5, label='Mu/Sigma (Meta Unit Training: Teacher 20% + Q-learner)', color="blue")
 plt.errorbar(
     np.arange(training_iterations)[::slice],
     mean_y[::slice],
     yerr=variance_y[::slice],
-    fmt="o-",
+    fmt="o:",
+    linewidth=1.5,
     capsize=5,
-    label="Mu/Sigma (Q-learner Training)",
+    label="Scaffolding Agent Only",
     color="blue",
+)
+plt.errorbar(
+    np.arange(training_iterations)[::slice],
+    mean_z[::slice],
+    yerr=variance_z[::slice],
+    fmt="o--",
+    linewidth=1.5,
+    capsize=5,
+    label="Scaffolding Agent + 20% teacher intervention",
+    color="red",
 )
 # plt.plot(x, label="Training (with teacher)", color="grey")
 # plt.plot(y, label="Evaluation (without teacher)", color="blue")
-# plt.xlabel("Number of training episodes (agent)")
-# plt.ylabel("Improvement rate")
-plt.title("Meta unit training (grey) and Q-learner evaluation (blue)")
+plt.xlabel("Number of training episodes (agent)")
+plt.ylabel("Improvement rate")
+plt.title("Improvement rate of the student")
 # plt.title("Meta Unit training (Bernoulli) (grey), Meta Unit training with 20% teacher interventions(blue)")
 plt.legend()
-plt.show()
+# plt.show()
+plt.savefig("meta_unit_training.png", dpi=300)
