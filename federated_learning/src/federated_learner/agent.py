@@ -64,6 +64,15 @@ class ReplayMemory(object):
         """
         self.memory = deque([], maxlen=capacity)
 
+    @property
+    def capacity(self) -> int:
+        """Returns the capacity of the memory.
+
+        Returns:
+            int: The capacity of the memory.
+        """
+        return self.memory.maxlen
+
     def push(self, *args: np.ndarray) -> None:
         """Push a new transition into the memory.
 
@@ -103,9 +112,11 @@ class DeepQNetwork(nn.Module):
             n_actions (int): Number of possible actions the agent can take.
         """
         super(DeepQNetwork, self).__init__()
-        self.layer1 = nn.Linear(n_observations, 128)
-        self.layer2 = nn.Linear(128, 128)
-        self.layer3 = nn.Linear(128, n_actions)
+        self.layer1 = nn.Linear(n_observations, 64)
+        self.layer2 = nn.Linear(64, 32)
+        self.layer3 = nn.Linear(32, 32)
+        self.layer4 = nn.Linear(32, 64)
+        self.layer5 = nn.Linear(64, n_actions)
 
     # Called with either one element to determine next action, or a batch
     # during optimization. Returns tensor([[left0exp,right0exp]...]).
@@ -118,9 +129,11 @@ class DeepQNetwork(nn.Module):
         Returns:
             torch.Tensor: Output tensor after passing through the layers.
         """
-        x = nn.functional.relu(self.layer1(x))
-        x = nn.functional.relu(self.layer2(x))
-        return self.layer3(x)
+        x = nn.functional.gelu(self.layer1(x))
+        x = nn.functional.gelu(self.layer2(x))
+        x = nn.functional.gelu(self.layer3(x))
+        x = nn.functional.gelu(self.layer4(x))
+        return self.layer5(x)
 
 
 class DQNAgent:
@@ -146,7 +159,7 @@ class DQNAgent:
         )
         self.steps_done = 0
 
-    def select_action(self, state: np.ndarray) -> int:
+    def select_action(self, state: np.ndarray, evluation: bool = False) -> int:
         """Selects an action based on the given state.
 
         Epislon-greedy policy is used to select the action.
@@ -161,15 +174,23 @@ class DQNAgent:
 
         Args:
             state (np.ndarray): The current state of the environment.
+            evluation (bool): Flag to indicate if the agent is being evaluated.
 
         Returns:
             int: The action to be taken.
         """
         # Implementation of epsilon_decay
 
-        epsilon = self.epsilon_end + (self.epsilon_start - self.epsilon_end) * math.exp(
-            -1.0 * self.steps_done / self.epsilon_decay
-        )
+        if evluation:
+            with torch.no_grad():
+                # t.max(1) will return the largest column value of each row.
+                # second column on max result is index of where max element was
+                # found, so we pick action with the larger expected reward.
+                return self.policy_net(state).max(1).indices.view(1, 1)
+
+        epsilon = self.epsilon_end + (
+            self.epsilon_start - self.epsilon_end
+        ) * math.exp(-1.0 * self.steps_done / self.epsilon_decay)
         self.steps_done += 1
 
         if np.random.rand() > epsilon:

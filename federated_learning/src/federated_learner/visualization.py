@@ -12,8 +12,6 @@ is_ipython = "inline" in matplotlib.get_backend()
 if is_ipython:
     from IPython import display
 
-plt.ion()
-
 
 def plot_durations(episode_durations: list[int], show_result: bool = False) -> None:
     """Plot the durations of episodes.
@@ -50,3 +48,28 @@ def plot_durations(episode_durations: list[int], show_result: bool = False) -> N
             display.clear_output(wait=True)
         else:
             display.display(plt.gcf())
+
+
+def plot_reward(average_rewards: list[tuple[int, float]], std_deviation_rewards: list[tuple[int, float]]) -> None:
+    """Plot the average rewards with standard deviation.
+
+    Args:
+        average_rewards (list[tuple[int, float]]): List of average rewards.
+        std_deviation_rewards (list[tuple[int, float]]): List of standard deviation of rewards.
+
+    Returns:
+        None
+    """
+    # Extract episodes, rewards, and standard deviations
+    episodes = [ar.episode for ar in average_rewards]
+    rewards = [ar.reward for ar in average_rewards]
+    std_devs = [sd.reward for sd in std_deviation_rewards]
+
+    # Plot the rewards over episodes with standard deviation
+    plt.figure()
+    plt.errorbar(episodes, rewards, yerr=std_devs, label="Average Reward", fmt='-o')
+    plt.xlabel("Episode")
+    plt.ylabel("Average Reward")
+    plt.title("Average Reward over Episodes")
+    plt.legend()
+    plt.show()

@@ -457,26 +457,32 @@ wheels = [
 [[package]]
 name = "federated-learner"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "gymnasium", extra = ["all"] },
     { name = "ipython" },
+    { name = "ipywidgets" },
     { name = "jupyter" },
     { name = "jupyter-client" },
     { name = "matplotlib" },
+    { name = "notebook" },
     { name = "plotly" },
     { name = "pynvim" },
+    { name = "tqdm" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "gymnasium", extras = ["all"], specifier = ">=1.1.0" },
-    { name = "ipython", specifier = ">=9.0.0" },
+    { name = "ipython", specifier = "==8.22.0" },
+    { name = "ipywidgets", specifier = ">=8.1.5" },
     { name = "jupyter", specifier = ">=1.1.1" },
     { name = "jupyter-client", specifier = ">=8.6.3" },
     { name = "matplotlib", specifier = ">=3.10.1" },
+    { name = "notebook", specifier = ">=7.3.2" },
     { name = "plotly", specifier = ">=6.0.0" },
     { name = "pynvim", specifier = ">=0.5.2" },
+    { name = "tqdm", specifier = ">=4.67.1" },
 ]
 
 [[package]]
@@ -752,12 +758,11 @@ wheels = [
 
 [[package]]
 name = "ipython"
-version = "9.0.0"
+version = "8.22.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "colorama", marker = "sys_platform == 'win32'" },
     { name = "decorator" },
-    { name = "ipython-pygments-lexers" },
     { name = "jedi" },
     { name = "matplotlib-inline" },
     { name = "pexpect", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
@@ -766,21 +771,9 @@ dependencies = [
     { name = "stack-data" },
     { name = "traitlets" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/de/39/264894738a202ddaf6abae39b3f84671ddee23fd292dbb3e10039e70300c/ipython-9.0.0.tar.gz", hash = "sha256:9368d65b3d4a471e9a698fed3ea486bbf6737e45111e915279c971b77f974397", size = 4364165 }
+sdist = { url = "https://files.pythonhosted.org/packages/d7/c6/8bec4b09c6cdaa8eecf73a07ce1dc3fc92c21e4f07764a7c8d66f874d4a4/ipython-8.22.0.tar.gz", hash = "sha256:bc649987e35a75ecccab7a245d7403710e3a289384c268d6d846ab8933ca0811", size = 5490398 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/85/a1/894e4c0b6ac994045c6edeb2b6fdf69c59f20fcd2e348a42f4e40889181c/ipython-9.0.0-py3-none-any.whl", hash = "sha256:2cce23069b830a54a5b9d3d66ccd6433047c1503a7b9a3b34593c0b5c2c08477", size = 592040 },
-]
-
-[[package]]
-name = "ipython-pygments-lexers"
-version = "1.1.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pygments" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/ef/4c/5dd1d8af08107f88c7f741ead7a40854b8ac24ddf9ae850afbcf698aa552/ipython_pygments_lexers-1.1.1.tar.gz", hash = "sha256:09c0138009e56b6854f9535736f4171d855c8c08a563a0dcd8022f78355c7e81", size = 8393 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d9/33/1f075bf72b0b747cb3288d011319aaf64083cf2efef8354174e3ed4540e2/ipython_pygments_lexers-1.1.1-py3-none-any.whl", hash = "sha256:a9462224a505ade19a605f71f8fa63c2048833ce50abc86768a0d81d876dc81c", size = 8074 },
+    { url = "https://files.pythonhosted.org/packages/06/96/8e836e2144d294fe2db06b0529c30f723d8b3c0d75a4834309a03a00d9dd/ipython-8.22.0-py3-none-any.whl", hash = "sha256:a3e962e1d42927f5825dab048f4de617f5856cf3272fff1cb9245bea0c785a46", size = 811950 },
 ]
 
 [[package]]

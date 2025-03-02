@@ -6,12 +6,14 @@ import gymnasium
 import matplotlib.pyplot as plt
 import torch
 
-from federated_learner import device
-from federated_learner.agent import AgentConfig, DeepQNetwork, DQNAgent
-from federated_learner.visualization import plot_durations
+from collections import namedtuple
+from src.federated_learner import device
+from src.federated_learner.agent import AgentConfig, DeepQNetwork, DQNAgent
+from src.federated_learner.utils import test_agent
+from src.federated_learner.visualization import plot_durations, plot_average_rewards
 
 episode_durations = []
-num_episodes = 5000
+num_episodes = 50
 
 env = gymnasium.make("CartPole-v1")
 
@@ -34,8 +36,20 @@ agent_config = AgentConfig(
 
 agent = DQNAgent(agent_config, DeepQNetwork)
 
+AverageReward = namedtuple("AverageReward", ("episode", "reward"))
+average_rewards = []
+
+plt.ion()
+
 for i_episode in range(num_episodes):
     # Initialize the environment and get its state
+    if i_episode % 100 == 0:
+        average_reward = test_agent(env, agent)
+        print(
+            f"Episode {i_episode} --> Average Total Reward (Evaluation): {average_reward}"
+        )
+        average_rewards.append(AverageReward(i_episode, average_reward))
+
     state, info = env.reset()
     state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
     for t in count():
@@ -71,3 +85,5 @@ print("Complete")
 plot_durations(episode_durations, show_result=True)
 plt.ioff()
 plt.show()
+
+plot_average_rewards(average_rewards)
