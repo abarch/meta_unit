@@ -49,4 +49,5 @@ __pycache__
 logs/
 .idea
 .mypy_cache
-/federated_learning/243_24978_54-pycharm-support-libs/
+*-pycharm-support-libs/
+*.egg-info/

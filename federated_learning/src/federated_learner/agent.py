@@ -114,7 +114,7 @@ class DeepQNetwork(nn.Module):
         super(DeepQNetwork, self).__init__()
         self.layer1 = nn.Linear(n_observations, 64)
         self.layer2 = nn.Linear(64, 32)
-        self.layer3 = nn.Linear(32, 32)
+        self.layer3 = nn.Linear(32, 32) # Latent layer
         self.layer4 = nn.Linear(32, 64)
         self.layer5 = nn.Linear(64, n_actions)
 
