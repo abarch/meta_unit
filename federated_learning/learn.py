@@ -1,16 +1,16 @@
 """Learning script."""
 
+from collections import namedtuple
 from itertools import count
 
 import gymnasium
 import matplotlib.pyplot as plt
 import torch
 
-from collections import namedtuple
 from src.federated_learner import device
 from src.federated_learner.agent import AgentConfig, DeepQNetwork, DQNAgent
 from src.federated_learner.utils import test_agent
-from src.federated_learner.visualization import plot_durations, plot_average_rewards
+from src.federated_learner.visualization import plot_average_rewards, plot_durations
 
 episode_durations = []
 num_episodes = 50

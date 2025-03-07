@@ -63,7 +63,7 @@ def plot_reward(average_rewards: list[tuple[int, float]], std_deviation_rewards:
     # Extract episodes, rewards, and standard deviations
     episodes = [ar.episode for ar in average_rewards]
     rewards = [ar.reward for ar in average_rewards]
-    std_devs = [sd.reward for sd in std_deviation_rewards]
+    std_devs = [abs(sd.reward) for sd in std_deviation_rewards]
 
     # Plot the rewards over episodes with standard deviation
     plt.figure()
