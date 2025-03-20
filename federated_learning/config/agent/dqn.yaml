@@ -1,0 +1,10 @@
+model: DeepQNetwork
+seed: 42
+learning_rate: 1e-4
+tau: 0.05
+gamma: 0.99
+epsilon_start: 0.99
+epsilon_decay: 1000
+epsilon_end: 0.05
+buffer_size: 10000
+batch_size: 128

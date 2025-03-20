@@ -1,0 +1,6 @@
+defaults:
+  - agent: dqn
+  - environment: acrobot_default
+
+experiment:
+  device: mps

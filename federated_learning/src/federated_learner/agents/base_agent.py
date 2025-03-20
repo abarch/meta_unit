@@ -15,7 +15,7 @@ import numpy as np
 import torch
 from torch import nn
 
-from . import device
+from federated_learner import device
 
 Transition = namedtuple("Transition", ("state", "action", "next_state", "reward"))
 
@@ -101,41 +101,6 @@ class ReplayMemory(object):
         return len(self.memory)
 
 
-class DeepQNetwork(nn.Module):
-    """Deep Q-Network implementation."""
-
-    def __init__(self, n_observations: int, n_actions: int) -> None:
-        """Initializes the DQN agent.
-
-        Args:
-            n_observations (int): Number of observations from the environment.
-            n_actions (int): Number of possible actions the agent can take.
-        """
-        super(DeepQNetwork, self).__init__()
-        self.layer1 = nn.Linear(n_observations, 64)
-        self.layer2 = nn.Linear(64, 32)
-        self.layer3 = nn.Linear(32, 32) # Latent layer
-        self.layer4 = nn.Linear(32, 64)
-        self.layer5 = nn.Linear(64, n_actions)
-
-    # Called with either one element to determine next action, or a batch
-    # during optimization. Returns tensor([[left0exp,right0exp]...]).
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Performs a forward pass through the network layers.
-
-        Args:
-            x (torch.Tensor): Input tensor to the network.
-
-        Returns:
-            torch.Tensor: Output tensor after passing through the layers.
-        """
-        x = nn.functional.gelu(self.layer1(x))
-        x = nn.functional.gelu(self.layer2(x))
-        x = nn.functional.gelu(self.layer3(x))
-        x = nn.functional.gelu(self.layer4(x))
-        return self.layer5(x)
-
-
 class DQNAgent:
     """Deep Q-Learning agent interacting with environment."""
 
@@ -188,9 +153,9 @@ class DQNAgent:
                 # found, so we pick action with the larger expected reward.
                 return self.policy_net(state).max(1).indices.view(1, 1)
 
-        epsilon = self.epsilon_end + (
-            self.epsilon_start - self.epsilon_end
-        ) * math.exp(-1.0 * self.steps_done / self.epsilon_decay)
+        epsilon = self.epsilon_end + (self.epsilon_start - self.epsilon_end) * math.exp(
+            -1.0 * self.steps_done / self.epsilon_decay
+        )
         self.steps_done += 1
 
         if np.random.rand() > epsilon:

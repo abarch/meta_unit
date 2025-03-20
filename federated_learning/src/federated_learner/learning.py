@@ -13,7 +13,7 @@ import torch
 from tqdm import tqdm
 
 from federated_learner import device
-from federated_learner.agent import DQNAgent
+from federated_learner.agents.base_agent import DQNAgent
 
 
 class LearningSuite:
