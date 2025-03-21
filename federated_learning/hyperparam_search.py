@@ -29,35 +29,8 @@ def train(cfg: DictConfig):
     env = make_env(cfg)
     agent = make_agent(cfg, env)
 
-    SEED = 42
-    learn: LearningSuite = LearningSuite(agent, env, SEED)
-    num_episodes = 5
-    AverageReward = namedtuple("AverageReward", ("episode", "reward"))
-    average_rewards = []
-    std_deviation_rewards = []
-    episode_durations = []
-
-    print("Filling the buffer with random actions")
-    learn.fill_buffer()
-    print("Buffer filled")
-    for i_episode in tqdm(range(num_episodes)):
-        # Initialize the environment and get its state
-        if i_episode % 25 == 0:
-            average_reward, std_deviation_reward = learn.test(100)
-            print(
-                f"Episode {i_episode} --> Average Total Reward (Evaluation): {average_reward}"
-            )
-            average_rewards.append(AverageReward(i_episode, average_reward))
-            std_deviation_rewards.append(AverageReward(i_episode, average_reward))
-        steps = learn.train()
-        episode_durations.append(steps)
-    average_reward, std_deviation_reward = learn.test(100)
-    print(
-        f"Episode {i_episode} --> Average Total Reward (Evaluation): {average_reward}"
-    )
-    average_rewards.append(AverageReward(i_episode, average_reward))
-    std_deviation_rewards.append(AverageReward(i_episode, average_reward))
-
+    learn: LearningSuite = LearningSuite(cfg, agent, env)
+    learn.train_over_episodes(2)
     print("Complete")
     # reward = model_learn(cfg, agent)
     reward = 0

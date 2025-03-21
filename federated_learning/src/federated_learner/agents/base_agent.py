@@ -10,6 +10,7 @@ import math
 import random
 from collections import deque, namedtuple
 from dataclasses import dataclass
+from abc import ABC
 
 import numpy as np
 import torch
@@ -101,7 +102,13 @@ class ReplayMemory(object):
         return len(self.memory)
 
 
-class DQNAgent:
+class BaseAgent(ABC):
+    """Abstract base class for the agent."""
+
+    pass
+
+
+class DQNAgent(BaseAgent):
     """Deep Q-Learning agent interacting with environment."""
 
     def __init__(self, config: AgentConfig, model: nn.Module) -> None:

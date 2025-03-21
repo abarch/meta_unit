@@ -3,4 +3,12 @@ defaults:
   - environment: acrobot_default
 
 experiment:
-  device: mps
+  seed: 42
+  # Should the experience buffer be filled before learning starts?
+  fill_buffer: true
+  # Learning duration
+  num_episodes: 1000
+  # Test after every x episodes
+  test_interval: 25
+  # Number of episodes to test
+  test_episodes: 100

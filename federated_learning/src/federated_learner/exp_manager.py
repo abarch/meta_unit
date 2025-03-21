@@ -1,6 +1,6 @@
 """Experiment manager module."""
 
-from federated_learner.agents.base_agent import DQNAgent, AgentConfig
+from federated_learner.agents.base_agent import BaseAgent
 from federated_learner.agents import agent_registry
 from omegaconf import DictConfig
 import gymnasium
@@ -18,7 +18,7 @@ def make_env(cfg: DictConfig) -> gymnasium.Env:
     return gymnasium.make(cfg.environment.env_id)
 
 
-def make_agent(cfg: DictConfig, env: gymnasium.Env) -> DQNAgent:
+def make_agent(cfg: DictConfig, env: gymnasium.Env) -> BaseAgent:
     """Creates and initializes a DQNAgent with the given configuration.
 
     Args:
@@ -35,7 +35,7 @@ def make_agent(cfg: DictConfig, env: gymnasium.Env) -> DQNAgent:
     state, _ = env.reset()
     state_dim = len(state)
     action_dim = env.action_space.n
-    config = AgentConfig(
+    config = agent_registry[cfg.agent.agent_type]["config"](
         state_dim=state_dim,
         action_dim=action_dim,
         learning_rate=cfg.agent.learning_rate,
@@ -48,4 +48,6 @@ def make_agent(cfg: DictConfig, env: gymnasium.Env) -> DQNAgent:
         batch_size=cfg.agent.batch_size,
     )
 
-    return DQNAgent(config, agent_registry[cfg.agent.model])
+    return agent_registry[cfg.agent.agent_type]["agent"](
+        config, agent_registry[cfg.agent.agent_type]["model"][cfg.agent.model]
+    )
