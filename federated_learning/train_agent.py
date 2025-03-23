@@ -5,10 +5,8 @@ For configuring the hyperparameter search, we use Optuna.
 """
 
 import hydra
-from collections import namedtuple
 import os
 from omegaconf import DictConfig, OmegaConf
-from tqdm import tqdm
 from federated_learner.exp_manager import make_agent, make_env
 from federated_learner.learning import LearningSuite
 
@@ -17,26 +15,19 @@ os.environ["HYDRA_FULL_ERROR"] = "1"
 
 # Starting point for training agents.
 # Decorator captures console arguments where config paths are provided.
-# Based on hydra configuration manager. Creates an outputs directory for each run.
 # Example command:
 #       python train_agent.py
 #       python train_agent.py -m
-@hydra.main(version_base="1.2", config_path="./config", config_name="default")
-def train(cfg: DictConfig):
-    # root_path = os.getcwd()
+@hydra.main(version_base="1.3", config_path="./config", config_name="default")
+def train(cfg: DictConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
 
     env = make_env(cfg)
     agent = make_agent(cfg, env)
 
     learn: LearningSuite = LearningSuite(cfg, agent, env)
-    learn.train_over_episodes(2)
+    learn.train_over_episodes()
     print("Complete")
-    # reward = model_learn(cfg, agent)
-    reward = 0
-
-    # Return is for optuna sweeper, in hydra decorator
-    return reward
 
 
 if __name__ == "__main__":
