@@ -1,11 +1,14 @@
 [project]
 name = "federated_learner"
+authors = [{ name = "Sascha Fleer", email = "sascha.fleer@gmail.com" }]
+maintainers = [{ name = "Sascha Fleer", email = "sascha.fleer@gmail.com" }]
 version = "0.1.0"
-description = "Add your description here"
+description = "RL Framework for Federated Learning"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
   "gymnasium[all]>=1.1.0",
+  "hydra-core>=1.3.2",
   "ipython==8.22.0",
   "ipywidgets>=8.1.5",
   "jupyter>=1.1.1",
@@ -16,6 +19,16 @@ dependencies = [
   "pynvim>=0.5.2",
   "tqdm>=4.67.1",
 ]
+
+[project.urls]
+Source = "https://github.com/abarch/meta_unit"
+
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
@@ -96,9 +109,14 @@ skip-magic-trailing-comma = false
 # Like Black, automatically detect the appropriate line ending.
 line-ending = "auto"
 
+[tool.uv.sources]
+federated-learner = { workspace = true }
+
 [dependency-groups]
 dev = [
+    "federated-learner",
     "mypy>=1.15.0",
+    "types-tqdm>=4.67.0.20250319",
 ]
 
 [tool.ruff.lint.pydocstyle]
