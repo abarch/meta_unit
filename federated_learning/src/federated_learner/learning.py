@@ -176,7 +176,7 @@ class LearningSuite:
                 # Move to the next state
                 state = next_state
 
-    def train_over_episodes(self, epochs: int | None) -> tuple[list, list, list]:
+    def train_over_episodes(self, epochs: int | None = None) -> tuple[list, list, list]:
         """Trains the agent over a specified number of epochs.
 
         Args:
